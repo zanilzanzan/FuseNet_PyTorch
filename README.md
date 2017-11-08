@@ -1,5 +1,5 @@
 # FuseNet
-Joint scene classification and semantic segmentation using FuseNet architecture from [FuseNet: incorporating depth into semantic segmentation via fusion-based CNN architecture](https://vision.in.tum.de/_media/spezial/bib/hazirbasma2016fusenet.pdf). Potential effects of additional scene classification loss on the overall semantic segmentation quality is tested.
+Joint scene classification and semantic segmentation using FuseNet architecture from [FuseNet: incorporating depth into semantic segmentation via fusion-based CNN architecture](https://vision.in.tum.de/_media/spezial/bib/hazirbasma2016fusenet.pdf). Potential effects of additional scene classification loss on the overall semantic segmentation quality are tested.
 
 <img src="images/framework.png" width="800px"/>
 
