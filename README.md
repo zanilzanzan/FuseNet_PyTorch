@@ -15,7 +15,7 @@ Joint scene classification and semantic segmentation using FuseNet architecture 
 
 #### NYU
 
-1.Simply download the processed .h5py dataset with 40 annotations and 10 classes here: [train + test set](https://www.dropbox.com/s/n664gpdt7rkuejj/nyu_class_10_db.h5?dl=0). (TODO: When running Train_FuseNet.py download the dataset automatically if not found)
+1.Simply download the processed .h5py dataset with 40 annotations and 10 classes here: [train + test set](https://vision.in.tum.de/webarchive/hazirbas/fusenet-pytorch/nyu_class_10_db.h5).
 
 
 #### SUNRGBD
