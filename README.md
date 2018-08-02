@@ -20,7 +20,7 @@ Joint scene classification and semantic segmentation using FuseNet architecture 
 
 #### SUNRGBD
 
-1. Download the dataset [here](link) TODO: Will be announced soon
+1. Download the dataset [here](https://vision.in.tum.de/webarchive/hazirbas/fusenet-pytorch/sn_class_10_db.h5)
 
 2. Download class weight file [here](link) TODO: Will be announced soon
 
