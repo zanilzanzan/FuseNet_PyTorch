@@ -15,12 +15,14 @@ Joint scene classification and semantic segmentation using FuseNet architecture 
 
 1.Simply download the processed .h5py dataset with 40 annotations and 10 classes here: [train + test set](https://vision.in.tum.de/webarchive/hazirbas/fusenet-pytorch/nyu_class_10_db.h5).
 
+2. Scene mapping can be found [here](utils/nyu_scene_mapping.txt)
+
 
 #### SUNRGBD
 
-1. Download the dataset [here](link)
+1. Download the dataset [here](link) TODO: Will be announced soon.
 
-2. Download class weight file [here](link) .
+2. Download class weight file [here](link) TODO: Will be announced soon.
 
 ### Training
 - To train Fusenet run `Train_FuseNet.py`. Dataset choice is manually implemented in the script for now. The dataset is taken and prepared by `utils/data_utils_class.py`, therefore make sure to give the correct path in the script.
