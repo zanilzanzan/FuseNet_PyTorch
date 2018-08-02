@@ -22,7 +22,7 @@ Joint scene classification and semantic segmentation using FuseNet architecture 
 
 1. Download the dataset [here](https://vision.in.tum.de/webarchive/hazirbas/fusenet-pytorch/sn_class_10_db.h5)
 
-2. Download class weight file [here](link) TODO: Will be announced soon
+2. Class weights are set in [FuseNet.py](FuseNet.py#L306). In case of an update on the training set, please adjust the weights, accordingly.
 
 ### Training
 - To train Fusenet run `Train_FuseNet.py`. Dataset choice is manually implemented in the script for now. The dataset is taken and prepared by `utils/data_utils_class.py`, therefore make sure to give the correct path in the script.
