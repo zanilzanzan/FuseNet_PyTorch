@@ -26,7 +26,7 @@ class FuseNet(nn.Module):
         #print('feats[1] shape: ', feats[2].weight.data.size())
 
         avg = torch.mean(feats[0].cuda(gpu_device).weight.data, dim=1)
-
+        avg = avg.unsqueeze(1)
         ########  DEPTH ENCODER  ########
         dense_mid_size = 128
         encode_size = 16
