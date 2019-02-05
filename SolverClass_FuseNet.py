@@ -135,7 +135,7 @@ class SolverSemSeg(object):
             running_class_loss = 0.0
             running_seg_loss = 0.0
             
-            # Train model in .train() mode
+            # Train model in train() mode
             model.train()
             for i, data in enumerate(train_loader, 0):   
                 timestep2 = time()
