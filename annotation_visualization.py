@@ -3,7 +3,7 @@ from PIL import Image, ImageFont, ImageDraw
 import torch
 from FuseNetClass import FuseNet
 from torch.autograd import Variable
-from utils.data_utils_class import get_data
+from utils.data_utils import get_data
 import sys
 import os
 
@@ -24,11 +24,9 @@ def paint_and_save(image, rgb_image, scene_label, scene_pred, idx):
         x_offset += rgb_image.size[0]
         new_image.paste(image, (x_offset, 0))
 
+        # Print scene class names on ground truth and prediction
         draw = ImageDraw.Draw(new_image)
-        # font = ImageFont.truetype(<font-file>, <font-size>)
         font = ImageFont.load_default().font
-                # truetype("arial.ttf", 16)
-        # draw.text((x, y),"Sample Text",(r,g,b))
         draw.text((330, 10), ('scene class: ' + scene_class_dict[scene_label]), (255, 255, 255), font=font)
         draw.text((650, 10), ('scene class: ' + scene_class_dict[scene_pred]), (255, 255, 255), font=font)
 
@@ -37,7 +35,6 @@ def paint_and_save(image, rgb_image, scene_label, scene_pred, idx):
 
 
 if __name__ == '__main__':
-    print('-'*90)
     save_path = './prediction_visualization/'  # Take dynamically
     if os.path.exists(save_path):
         key = input('[INFO] Taget directory already exists. You might lose previously saved images. Continue:Abort (y:n): ')
@@ -127,6 +124,5 @@ if __name__ == '__main__':
             # Color semantic segmentation labels, print scene classification labels, and save comparison images
             paint_and_save(comparison_images, np.uint8(test_rgb_inputs), test_class_labels, (test_class_preds + 1), i)
 
-    print('[INFO] All %i images have been saved.' % (test_size))
+    print('[INFO] All %i images have been saved.' % test_size)
     print('[COMPLETED] Boring prediction images are now nice and colorful!')
-    print('-' * 90)

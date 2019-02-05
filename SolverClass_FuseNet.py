@@ -17,8 +17,7 @@ class SolverSemSeg(object):
                          "eps": 1e-8,
                          "weight_decay": 0.0}
 
-    def __init__(self, optim=torch.optim.SGD, optim_args={},
-                 loss_func=torch.nn.CrossEntropyLoss):
+    def __init__(self, optim=torch.optim.SGD, optim_args={}, loss_func=torch.nn.CrossEntropyLoss):
         optim_args_merged = self.default_sgd_args.copy()
         optim_args_merged.update(optim_args)
         self.optim_args = optim_args_merged
@@ -66,8 +65,7 @@ class SolverSemSeg(object):
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr
 
-    def train(self, gpu_device, model, lam, dset_type, train_loader, val_loader, resume=False, num_epochs=10,
-              log_nth=0):
+    def train(self, gpu_device, model, dset_type, train_loader, val_loader, resume=False, num_epochs=10, log_nth=0, lam=1.0):
         """
         Train a given model with the provided data.
 
@@ -157,7 +155,7 @@ class SolverSemSeg(object):
                 
                 # forward + backward + optimize
                 output_seg, output_class = model(rgb_inputs, d_inputs)
-                loss, seg_loss, class_loss = criterion(output_seg, output_class, labels, class_labels, lam)
+                loss, seg_loss, class_loss = criterion(output_seg, labels, output_class, class_labels, lambda_2=lam, use_class=True)
                 loss.backward()
                 optim.step()
                 

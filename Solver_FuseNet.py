@@ -9,9 +9,6 @@ import torch.optim
 
 from time import time
 
-gpu_device = 0
-torch.cuda.set_device(gpu_device)
-print('[PROGRESS] Chosen GPU Device: ' + str(torch.cuda.current_device()))
 
 class Solver_SS(object):
     default_sgd_args = {"lr": 1e-3,
@@ -66,7 +63,8 @@ class Solver_SS(object):
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr
 
-    def train(self, model, dset_type, train_loader, val_loader, resume=False, num_epochs=10, log_nth=0):
+
+    def train(self, gpu_device, model, dset_type, train_loader, val_loader, resume=False, num_epochs=10, log_nth=0, lam=None):
         """
         Train a given model with the provided data.
 
@@ -142,11 +140,11 @@ class Solver_SS(object):
                 
                 # forward + backward + optimize
                 outputs = model(rgb_inputs, d_inputs)
-                loss = criterion(outputs, labels)
+                loss = criterion(outputs, labels, use_class=False)
                 loss.backward()
                 optim.step()
-                self.running_loss += loss.data[0]
-                running_loss += loss.data[0]
+                self.running_loss += loss.item()
+                running_loss += loss.item()
                 
                 # print statistics
                 if (i+1) % log_nth == 0 or (i+1) == iter_per_epoch:    # print every log_nth mini-batches
@@ -214,7 +212,6 @@ class Solver_SS(object):
 
         # Calculate IoU and Mean accuracies
         num_classes = val_outputs.size(1)
-        print num_classes
         val_confusion = np.zeros((num_classes,3))
         IoU = 0
         mean_acc = 0
