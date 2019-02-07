@@ -1,23 +1,20 @@
 import datetime
 import torch
 from torch.utils import data
-from fusenet_solver_2 import Solver
+from fusenet_solver import Solver
 from utils.data_utils import get_data
 from utils.loss_utils import cross_entropy_2d
 
 if __name__ == '__main__':
     gpu_device = 0
-    torch.cuda.set_device(gpu_device)
-    print('[INFO] Chosen GPU Device: ' + str(torch.cuda.current_device()))
-
     use_class = True
-    resume = False
+    resume = True
     dset_name = 'NYU'
 
     if dset_name == 'NYU':
-        seg_classes = 40
+        dset_info = {'NYU': 40}
     elif dset_name == 'SUN':
-        seg_classes = 37
+        dset_info = {'SUN': 37}
     else:
         raise NameError('Dataset name should be either NYU or SUN')
 
@@ -35,13 +32,14 @@ if __name__ == '__main__':
     for lam in lambdas:
 
         start_date_time = datetime.datetime.now().replace(microsecond=0)
-        solver = Solver(gpu_device, optim_args={"lr": 5e-3, "weight_decay": 0.0005}, loss_func=cross_entropy_2d, use_class=use_class)
+        solver = Solver(dset_info, gpu_device, optim_args={"lr": 5e-3, "weight_decay": 0.0005}, loss_func=cross_entropy_2d,
+                        use_class=use_class)
         print('[INFO] Lambda value for this training session: %.5f' % lam)
 
         if use_class:
-            solver.train_model(dset_name, train_loader, test_loader, resume, num_epochs=1, log_nth=5, lam=lam)
+            solver.train_model(train_loader, test_loader, resume, num_epochs=1, log_nth=5, lam=lam)
         else:
-            solver.train_model(dset_name, train_loader, test_loader, resume, num_epochs=1, log_nth=5)
+            solver.train_model(train_loader, test_loader, resume, num_epochs=1, log_nth=5)
         end_date_time = datetime.datetime.now().replace(microsecond=0)
 
         print('[INFO] Start and end time of the previous training session: %s - %s'

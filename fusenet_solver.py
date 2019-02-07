@@ -19,8 +19,13 @@ class Solver(object):
                          "eps": 1e-8,
                          "weight_decay": 0.0}
 
-    def __init__(self, gpu_device=0, optim=torch.optim.SGD, optim_args={}, loss_func=torch.nn.CrossEntropyLoss, use_class=False):
+    def __init__(self, dset_info, gpu_device=0, optim=torch.optim.SGD, optim_args={}, loss_func=torch.nn.CrossEntropyLoss, use_class=False):
+        self.dset_name, self.seg_class_num = next(iter(dset_info.items()))
         self.gpu_device = gpu_device
+        torch.cuda.set_device(gpu_device)
+        print('[INFO] Chosen GPU Device: %s' % torch.cuda.current_device())
+
+        # Set the optimizer
         optim_args_merged = self.default_sgd_args.copy()
         optim_args_merged.update(optim_args)
         self.optim_args = optim_args_merged
@@ -30,7 +35,8 @@ class Solver(object):
         self.use_class = use_class
         self.states = dict()
 
-        self.model = FuseNet(40, self.gpu_device, self.use_class)
+        # Create the FuseNet model
+        self.model = FuseNet(self.seg_class_num, self.gpu_device, self.use_class)
 
     def reset_histories_and_losses(self):
         """
@@ -49,10 +55,10 @@ class Solver(object):
         self.states['val_seg_acc_hist'] = []
         self.states['best_val_seg_acc'] = 0.0
 
-    def save_checkpoint(self, state, lam, is_best, dset_name='NYU'):
+    def save_checkpoint(self, state, lam, is_best):
         """ Write docstring
         """
-        if dset_name == 'NYU':
+        if self.dset_name == 'NYU':
             checkpoint_dir = './checkpoints/nyu/'  # take the output dir from user!
         else:
             checkpoint_dir = './checkpoints/sun/'
@@ -79,7 +85,7 @@ class Solver(object):
             print('[INFO] Best model has been successfully updated: %s' % best_model_filename)
         print('[INFO] Checkpoint has been saved: %s' % checkpoint_filename )
 
-    def load_checkpoint(self, optim, checkpoint_path='./checkpoints/nyu/model.pth.tar'):
+    def load_checkpoint(self, optim=None, checkpoint_path='./checkpoints/nyu/model.pth.tar', only_model=False):
         """ Write docstring
         """
         if os.path.isfile(checkpoint_path):
@@ -88,21 +94,24 @@ class Solver(object):
             # Load the checkpoint
             checkpoint = torch.load(checkpoint_path, map_location='cpu')
 
-            # Load optimization method parameters and the model state dictionary from the checkpoint
-            optim.load_state_dict(checkpoint['optimizer'])
+            # Load the model state dictionary from the checkpoint
             self.model.load_state_dict(checkpoint['state_dict'])
-
-            # Load the necessary checkpoint key values to the states dictionary which contains loss and history values/lists
-            self.states.update({key: value for key, value in checkpoint.items() if key not in ['optimizer', 'state_dict']})
-
             print('\r[INFO] Checkpoint has been loaded: {}'.format(checkpoint_path))
-            print('[INFO] History lists have been loaded')
-            print('[INFO] Resuming from epoch {}'.format(checkpoint['epoch']))
 
-            # content of checkpoint is loaded to the instance; so, delete checkpoint variable to create space on the GPU
-            del checkpoint
-            torch.cuda.empty_cache()
-            return optim
+            if not only_model:
+                # Load optimization method parameters from the checkpoint
+                optim.load_state_dict(checkpoint['optimizer'])
+                # Load the necessary checkpoint key values to the states dictionary which contains loss and history values/lists
+                self.states.update({key: value for key, value in checkpoint.items() if key not in ['optimizer', 'state_dict']})
+
+                print('[INFO] History lists have been loaded')
+                print('[INFO] Resuming from epoch {}'.format(checkpoint['epoch']+1))
+
+                # content of checkpoint is loaded to the instance; so, delete checkpoint variable to create space on the GPU
+                del checkpoint
+                torch.cuda.empty_cache()
+
+                return optim
         else:
             raise FileNotFoundError('Checkpoint file not found: %s' % checkpoint_path)
 
@@ -158,13 +167,12 @@ class Solver(object):
             val_seg_scores.append(np.mean((val_preds_seg == val_labels)[val_labels_mask].data.cpu().numpy()))
             del val_preds_seg, val_seg_outputs, val_labels_mask
 
-        print('VAL SEG SCORES: ', val_seg_scores)
         self.states['val_seg_acc_hist'].append(np.mean(val_seg_scores))
         if self.use_class:
             self.states['val_class_acc_hist'].append(np.mean(val_class_scores))
         print('VAL SEG HISTORY: ', self.states['val_seg_acc_hist'])
 
-    def train_model(self, dset_name, train_loader, val_loader, resume=False, num_epochs=10, log_nth=0, lam=None):
+    def train_model(self, train_loader, val_loader, resume=False, num_epochs=10, log_nth=0, lam=None):
         """
         Train a given model with the provided data.
 
@@ -210,7 +218,7 @@ class Solver(object):
             print('[INFO] TRAINING STARTS')
 
         # Determine at which epoch training session must end
-        star_epoch = self.states['epoch']
+        star_epoch = self.states['epoch']+1
         end_epoch = star_epoch + num_epochs
     
         # Start Training
@@ -303,16 +311,14 @@ class Solver(object):
                 self.states['train_seg_loss_hist'].append(running_seg_loss)
                 running_class_loss /= iter_per_epoch
                 self.states['train_class_loss_hist'].append(running_class_loss)
-                print('Train Class Scores shape and itself: ', len(train_class_scores), train_class_scores)
+                # print('Train Class Scores shape and itself: ', len(train_class_scores), train_class_scores)
+            # print('Train Seg Scores shape and itself: ', len(train_seg_scores), train_seg_scores)
 
-            print('Train Seg Scores shape and itself: ', len(train_seg_scores), train_seg_scores)
             train_seg_acc = np.mean(train_seg_scores)
             self.states['train_seg_acc_hist'].append(train_seg_acc)
-            print('HERE 1')
 
             # Run the model on the validation set and gather segmentation and classification accuracy
             self.validate_model(val_loader, lam)
-            print('HERE 2')
 
             if self.use_class:
                 train_class_acc = np.mean(train_class_scores)
@@ -337,49 +343,19 @@ class Solver(object):
                     self.states['best_val_seg_acc'] = max(current_val_seg_acc, best_val_seg_acc)
 
                     # model_state = self.update_model_state(epoch, self.model)
-                    self.save_checkpoint(self.update_model_state(optim), lam, is_best, dset_name)
+                    self.save_checkpoint(self.update_model_state(optim), lam, is_best)
 
-        self.seg_acc_calculation(val_loader, 40)
-        # self.reset_histories_and_losses()
-        # self.model = None
+        del self.model
         print("[FINAL] TRAINING COMPLETED")
+        self.seg_acc_calculation(val_loader)
 
-    def load_checkpoint_2(self, optim=None, checkpoint_path='./checkpoints/nyu/model.pth.tar', only_model=False):
-        """ Write docstring
-        """
-        if os.path.isfile(checkpoint_path):
-            print('[PROGRESS] Loading checkpoint: {}'.format(checkpoint_path), end="", flush=True)
-
-            # Load the checkpoint
-            checkpoint = torch.load(checkpoint_path, map_location='cpu')
-
-            # Load the model state dictionary from the checkpoint
-            self.model.load_state_dict(checkpoint['state_dict'])
-            print('\r[INFO] Checkpoint has been loaded: {}'.format(checkpoint_path))
-
-            if not only_model:
-                # Load optimization method parameters from the checkpoint
-                optim.load_state_dict(checkpoint['optimizer'])
-                # Load the necessary checkpoint key values to the states dictionary which contains loss and history values/lists
-                self.states.update({key: value for key, value in checkpoint.items() if key not in ['optimizer', 'state_dict']})
-
-                print('[INFO] History lists have been loaded')
-                print('[INFO] Resuming from epoch {}'.format(checkpoint['epoch']))
-                print('[INFO] TRAINING CONTINUES')
-
-                # content of checkpoint is loaded to the instance; so, delete checkpoint variable to create space on the GPU
-                del checkpoint
-                torch.cuda.empty_cache()
-
-                return optim
-        else:
-            raise FileNotFoundError('Checkpoint file not found: %s' % checkpoint_path)
-
-    def seg_acc_calculation(self, val_loader, num_classes):
+    def seg_acc_calculation(self, val_loader):
+        print('[INFO] Calculating Global, IoU, and Mean accuracy')
         checkpoint_path = './checkpoints/nyu/best.pth.tar'
-        self.load_checkpoint_2(checkpoint_path, only_model=True)
+        self.load_checkpoint(checkpoint_path, only_model=True)
+
         # Calculate IoU and Mean accuracy for semantic segmentation
-        print(num_classes)
+        num_classes = self.seg_class_num
         val_confusion_mtx = np.zeros((num_classes, 3))
         iou = 0
         mean_acc = 0
