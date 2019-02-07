@@ -20,9 +20,6 @@ class FuseNet(nn.Module):
         feats = list(models.vgg16(pretrained=True).features.children())
         feats2 = list(models.vgg16(pretrained=True).features.children())
 
-        #print('feats[0] shape: ', feats[0].weight.data.size())
-        #print('feats[1] shape: ', feats[2].weight.data.size())
-
         # Take the average of the weights for the depth branch over channel dimension 
         avg = torch.mean(feats[0].cuda(gpu_device).weight.data, dim=1)
         avg = avg.unsqueeze(1)
@@ -148,7 +145,7 @@ class FuseNet(nn.Module):
 
         self.dropout5 = nn.Dropout(p=0.5).cuda(gpu_device)
 
-        ########  RGB DECODER  ########
+        #########  RGB DECODER  #########
 
         self.CBR5_Dec = nn.Sequential (        
         nn.Conv2d(512, 512, kernel_size=3, padding=1).cuda(gpu_device),
@@ -295,9 +292,10 @@ class FuseNet(nn.Module):
         Inputs:
         - path: path string
         """
-        print 'Saving model: %s' % path
+        print('Saving model: %s' % path)
         torch.save(self, path)
-        print 'Model saved: %s' % path
+        print('Model saved: %s' % path)
+
 
 def CrossEntropy2d():
     def wrap(inputs, targets, weight=None, pixel_average=True):

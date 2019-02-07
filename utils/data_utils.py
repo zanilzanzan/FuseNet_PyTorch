@@ -73,11 +73,11 @@ def dataset_generator(h5file, dset_type, use_class):
     """
     dataset_dict = dict()
     # Create numpy arrays of given samples
-    dataset_dict['rgb'] = np.array(h5file['rgb_' + dset_type],  dtype=np.float32)
-    dataset_dict['depth'] = np.array(h5file['depth_' + dset_type], dtype=np.float32)
-    dataset_dict['seg_label'] = np.array(h5file['label_' + dset_type], dtype=np.int64)
+    dataset_dict['rgb'] = np.array(h5file['rgb_' + dset_type][:5],  dtype=np.float32)
+    dataset_dict['depth'] = np.array(h5file['depth_' + dset_type][:5], dtype=np.float32)
+    dataset_dict['seg_label'] = np.array(h5file['label_' + dset_type][:5], dtype=np.int64)
 
     # If classification loss is included in training add the classification labels to the dataset as well
     if use_class:
-        dataset_dict['class_label'] = np.array(h5file['class_' + dset_type], dtype=np.int64)
+        dataset_dict['class_label'] = np.array(h5file['class_' + dset_type][:5], dtype=np.int64)
     return CreateData(dataset_dict)

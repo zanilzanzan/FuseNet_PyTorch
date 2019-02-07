@@ -31,9 +31,9 @@ class Solver_SS(object):
 
     def save_checkpoint(self, state, is_best, dset_type='NYU'):
         if dset_type == 'NYU':
-            filename = 'models/nyu/'
+            filename = 'checkpoints/nyu/'
         elif dset_type == 'SUN':
-            filename = 'models/sun/' 
+            filename = 'checkpoints/sun/'
         else: 
             print ("[ERROR] Please correct dset_type. You can choose either SUN or NYU.")
         cp_filename = filename + 'checkpoint25.pth.tar'
@@ -88,9 +88,9 @@ class Solver_SS(object):
         if resume:
             print("[PROGRESS] Selected Training Mode: RESUME")
             if dset_type == 'NYU':
-                model_path = '/remwork/atcremers72/soenmeza/FuseNet/models/nyu/checkpoint12.pth.tar'
+                model_path = '/remwork/atcremers72/soenmeza/FuseNet/checkpoints/nyu/checkpoint12.pth.tar'
             elif dset_type == 'SUN':
-                model_path = '/remwork/atcremers72/soenmeza/FuseNet/models/sun/checkpoint12.pth.tar'
+                model_path = '/remwork/atcremers72/soenmeza/FuseNet/checkpoints/sun/checkpoint12.pth.tar'
             if os.path.isfile(model_path):
                 print("[PROGRESS] Loading checkpoint: '{}'".format(model_path))
                 checkpoint = torch.load(model_path)

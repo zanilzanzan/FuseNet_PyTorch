@@ -21,9 +21,9 @@ class FuseNet(nn.Module):
         avg = avg.unsqueeze(1)
 
         bn_moment = 0.1
+        self.use_class = use_class
 
         if use_class:
-            self.use_class = use_class
             num_classes = 10
 
         # DEPTH ENCODER
