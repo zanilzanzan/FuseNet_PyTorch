@@ -10,7 +10,6 @@ class CreateData(data.Dataset):
         self.depth = dataset_dict['depth']
         self.seg_label = dataset_dict['seg_label']
 
-        print(len(dataset_dict))
         if len(dataset_dict) > 3:
             self.class_label = dataset_dict['class_label']
         
@@ -56,12 +55,13 @@ def get_data(dset_name='NYU', use_train=True, use_test=True, use_class=False):
     # Create python dicts containing numpy arrays of training samples
     if use_train:
         train_dataset_generator = dataset_generator(h5file, 'train', use_class)
+        print('[INFO] Training set generator has been created.')
 
     # Create python dicts containing numpy arrays of test samples
     if use_test:
         test_dataset_generator = dataset_generator(h5file, 'test', use_class)
+        print('[INFO] Test set generator has been created.')
     h5file.close()
-
     return train_dataset_generator, test_dataset_generator
 
 
