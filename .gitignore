@@ -3,4 +3,5 @@
 /models
 /.ipynb_checkpoints
 /checkpoints
+/.*
 
