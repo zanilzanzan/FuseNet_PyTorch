@@ -1,12 +1,11 @@
 import numpy as np
 from PIL import Image, ImageFont, ImageDraw
 import torch
-from FuseNetClass import FuseNet
+from fusenet_model import FuseNet
 from torch.autograd import Variable
 from utils.data_utils import get_data
 import sys
 import os
-
 
 def paint_and_save(image, rgb_image, scene_label, scene_pred, idx):
         """Function takes a comparision image of semantic segmentation labels, an RGB image, ground-truth and
@@ -84,7 +83,7 @@ if __name__ == '__main__':
     test_size = test_data.__len__()
 
     # Read the FuseNet model path that will be used for prediction and load the weights to the initialized model
-    model_path = './models/nyu/model.pth.tar'  # Take this dynamically
+    model_path = './checkpoints/nyu/model.pth.tar'  # Take this dynamically
     model = FuseNet(seg_classes)
     print("[INFO] FuseNet model (%i segmentation classes) has been initialized." % seg_classes)
 
