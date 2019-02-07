@@ -263,17 +263,17 @@ class FuseNet(nn.Module):
 
         # Stage 1
         y = self.CBR1_RGB(rgb_inputs)
-        y = torch.add(y,x_1)
+        y = torch.add(y, x_1)
         y, id1 = F.max_pool2d(y, kernel_size=2, stride=2, return_indices=True)
 
         # Stage 2
         y = self.CBR2_RGB(y)
-        y = torch.add(y,x_2)
+        y = torch.add(y, x_2)
         y, id2 = F.max_pool2d(y, kernel_size=2, stride=2, return_indices=True)
 
         # Stage 3
         y = self.CBR3_RGB(y)
-        y = torch.add(y,x_3)
+        y = torch.add(y, x_3)
         y, id3 = F.max_pool2d(y, kernel_size=2, stride=2, return_indices=True)
         y = self.dropout3(y)
 
@@ -285,13 +285,13 @@ class FuseNet(nn.Module):
 
         # Stage 5
         y = self.CBR5_RGB(y)
-        y = torch.add(y,x_5)
+        y = torch.add(y, x_5)
         y_size = y.size() 
 
         # FC Block for Scene Classification
         y, id5 = F.max_pool2d(y, kernel_size=2, stride=2, return_indices=True)        
         y = self.dropout5(y)
-        y_class = y.view(y.size(0),-1)
+        y_class = y.view(y.size(0), -1)
         y_class = self.ClassHead(y_class)
 
         ########  DECODER  ########
@@ -326,9 +326,9 @@ class FuseNet(nn.Module):
         Inputs:
         - path: path string
         """
-        print 'Saving model: %s' % path
+        print('Saving model: %s' % path)
         torch.save(self, path)
-        print 'Model saved: %s' % path
+        print('Model saved: %s' % path)
 
 def CrossEntropy2d():
     def wrap(seg_inputs, class_inputs, seg_targets, class_targets, lambda2, weight=None, pixel_average=True):
@@ -349,12 +349,13 @@ def CrossEntropy2d():
 
         seg_loss = F.cross_entropy(seg_inputs, seg_targets, weight=weight, size_average=False)
         if pixel_average:
-            seg_loss /= seg_targets_mask.data.sum()
+            #seg_loss = seg_loss.float()
+            seg_loss /= seg_targets_mask.float().data.sum()
         
         # Calculate classification loss
         class_targets -= 1
         class_loss = F.cross_entropy(class_inputs, class_targets)
-        _, a = torch.max(class_inputs,1)
+        _, a = torch.max(class_inputs, 1)
         a = a.view(-1)
         
         # Give lambda values

@@ -1,1 +1,8 @@
 *.pyc
+<<<<<<< HEAD
+=======
+/data
+/models
+/.ipynb_checkpoints
+/.*
+>>>>>>> d071ffe... Changes to data_utils.py, Train_FuseNet.py, annotation_visualization.py

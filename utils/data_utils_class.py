@@ -1,74 +1,81 @@
-import cPickle as pickle
 import numpy as np
-import os
-from scipy.misc import imread
-from scipy import io
-from PIL import Image
 import h5py
 import torch
 import torch.utils.data as data
-from torchvision import transforms
+
 
 class CreateData(data.Dataset):
+    def __init__(self, dataset_dict):
+        self.rgb = dataset_dict['rgb']
+        self.depth = dataset_dict['depth']
+        self.seg_label = dataset_dict['seg_label']
 
-    def __init__(self, rgb, depth, seg_label, class_label):
-        self.rgb = rgb
-        self.depth = depth
-        self.seg_label = seg_label
-        self.class_label = class_label
+        print(len(dataset_dict))
+        if len(dataset_dict) > 3:
+            self.class_label = dataset_dict['class_label']
         
     def __getitem__(self, index):
-        img = self.rgb[index]
-        img_d = self.depth[index]
+        rgb_img = self.rgb[index]
+        depth_img = self.depth[index]
         seg_label = self.seg_label[index]
-        class_label = self.class_label[index]
-        
-        img = torch.from_numpy(img)
-        img_d = torch.from_numpy(img_d)
-        return img, img_d, seg_label, class_label
+
+        rgb_img = torch.from_numpy(rgb_img)
+        depth_img = torch.from_numpy(depth_img)
+
+        dataset_list = [rgb_img, depth_img, seg_label]
+
+        if len(self.class_label) > 0:
+            class_label = self.class_label[index]
+            dataset_list.append(class_label)
+        return dataset_list
 
     def __len__(self):
         return len(self.seg_label)
 
-def get_data(dtype=np.float32, dset_type='NYU'):
+
+def get_data(dset_name='NYU', use_train=True, use_test=True, use_class=False):
     """
     Load NYU_v2 or SUN rgb-d dataset in hdf5 format from disk and prepare
     it for classifiers.
     """
     # Load the chosen data path
-    if dset_type == 'SUN': 
-        path = '/usr/stud/soenmeza/Desktop/FuseNet/data/h5_files/sunrgbd1_db.h5'
-    elif dset_type == 'NYU':
-        path = '/usr/stud/soenmeza/Desktop/FuseNet/data/h5_files/nyu_class_10_db.h5'
+    if dset_name == 'SUN':
+        print('[INFO] SUN RGB-D dataset is being processed.')
+        path = './data/sn_class_10_db.h5'
+    elif dset_name == 'NYU':
+        path = './data/nyu_class_10_db.h5'
+        print('[INFO] NYU-v2 RGB-D dataset is being processed.')
     else:
-        print 'Wrong data requested. Please choose either "NYU" or "SUN".'
+        raise Exception('Wrong data requested. Please choose either "NYU" or "SUN".')
     
     h5file = h5py.File(path, 'r')
 
-    # Create numpy arrays of training samples
-    rgb_train = np.array(h5file['rgb_train'])
-    rgb_train = rgb_train.astype(dtype)
-    depth_train = np.array(h5file['depth_train'])
-    depth_train = depth_train.astype(dtype)
-    label_train = np.array(h5file['label_train'])
-    label_train = label_train.astype(np.int64)
-    label_class_train = np.array(h5file['class_train'])
-    label_class_train = label_class_train.astype(np.int64)
+    train_dataset_generator = None
+    test_dataset_generator = None
 
-    # Create numpy arrays of test samples
-    rgb_test = np.array(h5file['rgb_test'])
-    rgb_test = rgb_test.astype(dtype)
-    
-    depth_test = np.array(h5file['depth_test'])
-    depth_test = depth_test.astype(dtype)
-    
-    label_test = np.array(h5file['label_test'])    
-    label_test = label_test.astype(np.int64)
-    
-    label_class_test = np.array(h5file['class_test'])
-    label_class_test = label_class_test.astype(np.int64)
-    
+    # Create python dicts containing numpy arrays of training samples
+    if use_train:
+        train_dataset_generator = dataset_generator(h5file, 'train', use_class)
+
+    # Create python dicts containing numpy arrays of test samples
+    if use_test:
+        test_dataset_generator = dataset_generator(h5file, 'test', use_class)
     h5file.close()
 
-    return (CreateData(rgb_train, depth_train, label_train, label_class_train), 
-            CreateData(rgb_test, depth_test, label_test, label_class_test))
+    return train_dataset_generator, test_dataset_generator
+
+
+def dataset_generator(h5file, dset_type, use_class):
+    """
+    Move h5 dictionary contents to python dict as numpy arrays and create dataset generator
+    """
+    dataset_dict = dict()
+    # Create numpy arrays of given samples
+    dataset_dict['rgb'] = np.array(h5file['rgb_' + dset_type],  dtype=np.float32)
+    dataset_dict['depth'] = np.array(h5file['depth_' + dset_type], dtype=np.float32)
+    dataset_dict['seg_label'] = np.array(h5file['label_' + dset_type], dtype=np.int64)
+
+    # If classification loss is included in training add the classification labels to the dataset as well
+    if use_class:
+        dataset_dict['class_label'] = np.array(h5file['class_' + dset_type], dtype=np.int64)
+    return CreateData(dataset_dict)

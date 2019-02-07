@@ -1,18 +1,13 @@
 import numpy as np
 import torch
-import torch.backends.cudnn as cudnn
 import torch.optim
 from torch.autograd import Variable
-from random import shuffle
 import os
 import shutil
 from time import time
 
-gpu_device = 0
-torch.cuda.set_device(gpu_device)
-print('[PROGRESS] Chosen GPU Device: ' + str(torch.cuda.current_device()))
 
-class Solver_SS(object):
+class SolverSemSeg(object):
     default_sgd_args = {"lr": 1e-3,
                         "momentum": 0.9,
                         "weight_decay": 0.0005}
@@ -33,7 +28,7 @@ class Solver_SS(object):
 
     def save_checkpoint(self, state, lam, is_best, dset_type='NYU'):
         if dset_type == 'NYU':
-            filename = 'models/nyu/'
+            filename = './models/nyu/'
         elif dset_type == 'SUN':
             filename = 'models/sun/' 
         else: 
@@ -41,7 +36,7 @@ class Solver_SS(object):
         cp_filename = filename + str(lam) + '_checkpoint_class_1.pth.tar'
         torch.save(state, cp_filename)
         if is_best:
-            shutil.copyfile(cp_filename, filename + str(lam) + '_model_best_class_1.pth.tar')
+            shutil.copyfile(cp_filename, filename + str(lam) + '_model_best_class_2.pth.tar')
             print('[PROGRESS] Model successfully updated')
         print('[PROGRESS] Checkpoint saved')
 
@@ -71,7 +66,8 @@ class Solver_SS(object):
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr
 
-    def train(self, model, lam, dset_type, train_loader, val_loader, resume=False, num_epochs=10, log_nth=0):
+    def train(self, gpu_device, model, lam, dset_type, train_loader, val_loader, resume=False, num_epochs=10,
+              log_nth=0):
         """
         Train a given model with the provided data.
 
@@ -125,11 +121,11 @@ class Solver_SS(object):
             print("[PROGRESS] Selected Training Mode: NEW")
             print("[PROGRESS] TRAINING STARTS")
 
-        print(self.train_loss_history)
-        print(self.train_seg_acc_history)
-        print(self.train_class_acc_history)
-        print(self.val_seg_acc_history)
-        print(self.val_class_acc_history)
+        # print(self.train_loss_history)
+        # print(self.train_seg_acc_history)
+        # print(self.train_class_acc_history)
+        # print(self.val_seg_acc_history)
+        # print(self.val_class_acc_history)
         
         end_epoch = self.start_epoch + num_epochs
     
@@ -145,10 +141,12 @@ class Solver_SS(object):
             model.train()
             for i, data in enumerate(train_loader, 0):   
                 timestep2 = time()
-                rgb_inputs  = Variable(data[0].cuda(gpu_device))
-                d_inputs    = Variable(data[1].cuda(gpu_device))
-                labels      = Variable(data[2].cuda(gpu_device))
+                rgb_inputs = Variable(data[0].cuda(gpu_device))
+                d_inputs = Variable(data[1].cuda(gpu_device))
+                labels = Variable(data[2].cuda(gpu_device))
                 class_labels = Variable(data[3].cuda(gpu_device))
+
+                # print('[SOLVER DATA INFO] ', rgb_inputs, d_inputs, labels, class_labels)
                 
                 batch_size = len(rgb_inputs)
                 first_it = (i == 0) and (epoch == 0)
@@ -163,12 +161,19 @@ class Solver_SS(object):
                 loss.backward()
                 optim.step()
                 
-                self.running_seg_loss += seg_loss.data[0]
-                self.running_class_loss += class_loss.data[0]
-                self.running_loss += loss.data[0]
-                running_loss += loss.data[0]                
-                running_seg_loss += seg_loss.data[0]
-                running_class_loss += class_loss.data[0]
+                # self.running_seg_loss += seg_loss.data[0]
+                # self.running_class_loss += class_loss.data[0]
+                # self.running_loss += loss.data[0]
+                # running_loss += loss.data[0]
+                # running_seg_loss += seg_loss.data[0]
+                # running_class_loss += class_loss.data[0]
+
+                self.running_seg_loss += seg_loss.item()
+                self.running_class_loss += class_loss.item()
+                self.running_loss += loss.item()
+                running_loss += loss.item()
+                running_seg_loss += seg_loss.item()
+                running_class_loss += class_loss.item()
                 
                 # print statistics
                 if (i+1) % log_nth == 0 or (i+1) == iter_per_epoch:    # print every log_nth mini-batches
@@ -210,11 +215,11 @@ class Solver_SS(object):
                     # Evaluate model in .eval() mode
                     model.eval()
                     for batch in val_loader:
-                        val_rgb_inputs  = Variable(batch[0].cuda(gpu_device))
-                        val_d_inputs    = Variable(batch[1].cuda(gpu_device))
-                        val_labels      = Variable(batch[2].cuda(gpu_device))
-                        val_class       = Variable(batch[3].cuda(gpu_device))
-                        val_outputs_seg, val_outputs_class     = model(val_rgb_inputs, val_d_inputs)
+                        val_rgb_inputs = Variable(batch[0].cuda(gpu_device))
+                        val_d_inputs = Variable(batch[1].cuda(gpu_device))
+                        val_labels = Variable(batch[2].cuda(gpu_device))
+                        val_class = Variable(batch[3].cuda(gpu_device))
+                        val_outputs_seg, val_outputs_class = model(val_rgb_inputs, val_d_inputs)
                         
                         
                         (val_outputs_class.data.cpu().numpy()[0])
@@ -247,7 +252,7 @@ class Solver_SS(object):
                     self.running_loss = 0.0
                 
                     # Save the checkpoint and update the model
-                    if (epoch+1) > 70:
+                    if (epoch+1) > 0:
                         is_best = val_seg_acc > self.best_val_acc
                         if is_best:
                             self.best_model = model
@@ -273,18 +278,18 @@ class Solver_SS(object):
 
         # Calculate IoU and Mean accuracies
         num_classes = val_outputs_seg.size(1)
-        print num_classes
+        print(num_classes)
         val_confusion = np.zeros((num_classes,3))
         IoU = 0
         mean_acc = 0
 
         for batch in val_loader:
-            val_rgb_inputs  = Variable(batch[0].cuda(gpu_device))
-            val_d_inputs    = Variable(batch[1].cuda(gpu_device))
-            val_labels      = Variable(batch[2].cuda(gpu_device))
+            val_rgb_inputs = Variable(batch[0].cuda(gpu_device))
+            val_d_inputs = Variable(batch[1].cuda(gpu_device))
+            val_labels = Variable(batch[2].cuda(gpu_device))
             val_class_labels = Variable(batch[3].cuda(gpu_device))
-            val_outputs, val_class_outputs     = self.best_model(val_rgb_inputs, val_d_inputs)
-            _, val_preds    = torch.max(val_outputs, 1)
+            val_outputs, val_class_outputs = self.best_model(val_rgb_inputs, val_d_inputs)
+            _, val_preds = torch.max(val_outputs, 1)
                    
             val_labels = val_labels - 1
 
@@ -292,7 +297,7 @@ class Solver_SS(object):
                 val_labels_mask = val_labels == i
                 val_preds_mask = val_preds == i
                 TP = np.sum((val_preds == val_labels)[val_labels_mask].data.cpu().numpy())
-                #print TP
+
                 val_confusion[i,0] += TP 
                 val_confusion[i,1] += np.sum((val_labels==val_labels)[val_labels_mask].data.cpu().numpy()) - TP 
                 val_confusion[i,2] += np.sum((val_preds==val_preds)[val_preds_mask].data.cpu().numpy()) - TP 

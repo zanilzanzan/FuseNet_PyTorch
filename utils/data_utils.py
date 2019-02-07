@@ -1,14 +1,8 @@
-import cPickle as pickle
 import numpy as np
-import os
-from scipy.misc import imread
-from scipy import io
-from PIL import Image
 import h5py
-
 import torch
 import torch.utils.data as data
-from torchvision import transforms
+
 
 class CreateData(data.Dataset):
 
@@ -40,7 +34,7 @@ def get_data(dtype=np.float32, dset_type='NYU'):
     elif dset_type == 'NYU':
         path = '/usr/stud/soenmeza/Desktop/FuseNet/data/h5_files/nyu_class_db.h5'
     else:
-        print 'Wrong data requested. Please choose either "NYU" or "SUN".'
+        raise Exception('Wrong data requested. Please choose either "NYU" or "SUN".')
     
     h5file = h5py.File(path, 'r')
 
@@ -55,10 +49,8 @@ def get_data(dtype=np.float32, dset_type='NYU'):
     # Create numpy arrays of test samples
     rgb_test = np.array(h5file['rgb_test'])
     rgb_test = rgb_test.astype(dtype)
-    
     depth_test = np.array(h5file['depth_test'])
     depth_test = depth_test.astype(dtype)
-    
     label_test = np.array(h5file['label_test'])    
     label_test = label_test.astype(np.int64)
 
