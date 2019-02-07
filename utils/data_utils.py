@@ -39,13 +39,13 @@ def get_data(dset_name='NYU', use_train=True, use_test=True, use_class=False):
     Load NYU_v2 or SUN rgb-d dataset in hdf5 format from disk and prepare
     it for classifiers.
     """
-    # Load the chosen data path
+    # Load the chosen data path  (!) Make this part dynamic as well
     if dset_name == 'SUN':
-        print('[INFO] SUN RGB-D dataset is being processed.')
+        print('[INFO] SUN RGB-D dataset is being processed')
         path = './data/sn_class_10_db.h5'
     elif dset_name == 'NYU':
         path = './data/nyu_class_10_db.h5'
-        print('[INFO] NYU-v2 RGB-D dataset is being processed.')
+        print('[INFO] NYU-v2 RGB-D dataset is being processed')
     else:
         raise Exception('Wrong data requested. Please choose either "NYU" or "SUN".')
     
@@ -57,12 +57,12 @@ def get_data(dset_name='NYU', use_train=True, use_test=True, use_class=False):
     # Create python dicts containing numpy arrays of training samples
     if use_train:
         train_dataset_generator = dataset_generator(h5file, 'train', use_class)
-        print('[INFO] Training set generator has been created.')
+        print('[INFO] Training set generator has been created')
 
     # Create python dicts containing numpy arrays of test samples
     if use_test:
         test_dataset_generator = dataset_generator(h5file, 'test', use_class)
-        print('[INFO] Test set generator has been created.')
+        print('[INFO] Test set generator has been created')
     h5file.close()
     return train_dataset_generator, test_dataset_generator
 
@@ -73,11 +73,11 @@ def dataset_generator(h5file, dset_type, use_class):
     """
     dataset_dict = dict()
     # Create numpy arrays of given samples
-    dataset_dict['rgb'] = np.array(h5file['rgb_' + dset_type][:5],  dtype=np.float32)
-    dataset_dict['depth'] = np.array(h5file['depth_' + dset_type][:5], dtype=np.float32)
-    dataset_dict['seg_label'] = np.array(h5file['label_' + dset_type][:5], dtype=np.int64)
+    dataset_dict['rgb'] = np.array(h5file['rgb_' + dset_type],  dtype=np.float32)
+    dataset_dict['depth'] = np.array(h5file['depth_' + dset_type], dtype=np.float32)
+    dataset_dict['seg_label'] = np.array(h5file['label_' + dset_type], dtype=np.int64)
 
     # If classification loss is included in training add the classification labels to the dataset as well
     if use_class:
-        dataset_dict['class_label'] = np.array(h5file['class_' + dset_type][:5], dtype=np.int64)
+        dataset_dict['class_label'] = np.array(h5file['class_' + dset_type], dtype=np.int64)
     return CreateData(dataset_dict)

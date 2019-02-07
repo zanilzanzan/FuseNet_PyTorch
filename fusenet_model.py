@@ -108,7 +108,7 @@ class FuseNet(nn.Module):
             feats2[11].cuda(gpu_device),
             feats2[12].cuda(gpu_device),
             nn.BatchNorm2d(256).cuda(gpu_device),
-            feats2[13].cuda(gpu_device),         
+            feats2[13].cuda(gpu_device),
             feats2[14].cuda(gpu_device),
             nn.BatchNorm2d(256).cuda(gpu_device),
             feats2[15].cuda(gpu_device),
@@ -209,9 +209,11 @@ class FuseNet(nn.Module):
             nn.ReLU().cuda(gpu_device),
             nn.Conv2d(64, num_labels, kernel_size=3, padding=1).cuda(gpu_device),
         )
-        
-        self.initialize_weights()    
-    
+
+        print('[INFO] FuseNet model has been created')
+        self.initialize_weights()
+        print('[INFO] Model weights have been initialized using He initialization')
+
     # He Initialization for the linear layers in the classification head
     def initialize_weights(self): 
         for m in self.modules():
