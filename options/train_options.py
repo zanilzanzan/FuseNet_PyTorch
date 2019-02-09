@@ -18,7 +18,5 @@ class TrainOptions(BaseOptions):
                             help='range of lambda values for classification loss and steps in this range: (start_val, end_val, steps)')
         parser.add_argument('--optim', type=str, default='SGD',
                             help='optimization method to use during training; currently only SGD is available')
-        parser.add_argument('--use_class', type=bool, default=False,
-                            help='incorporate scene classification alongside semantic segmentation if True')
         self.isTrain = True
         return parser

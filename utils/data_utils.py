@@ -44,7 +44,7 @@ def get_data(opt, use_train=True, use_test=True):
     if os.path.exists(opt.dataroot):
         path = opt.dataroot
     else:
-        raise Exception('Wrong data requested. Please choose either "NYU" or "SUN".')
+        raise Exception('Wrong data requested. Please choose either "NYU" or "SUN"')
     
     h5file = h5py.File(path, 'r')
 

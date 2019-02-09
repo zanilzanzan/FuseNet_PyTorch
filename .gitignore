@@ -1,8 +1,6 @@
-*.pyc
+.*
 /data
 /models
-/.ipynb_checkpoints
 /checkpoints
-/.*
-
-
+/.ipynb_checkpoints
+/results

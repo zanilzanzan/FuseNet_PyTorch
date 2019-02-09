@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=opt.batch_size, shuffle=True, num_workers=opt.num_workers)
     test_loader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=opt.num_workers)
-    print("[INFO] Data loaders for %s dataset have been created" % dset_name)
+    print("[INFO] Data loaders for %s dataset have been created" % list(dset_info.keys())[0])
 
     if opt.use_class:
         # Grid search for lambda values

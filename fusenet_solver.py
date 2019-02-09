@@ -1,6 +1,6 @@
 import os
 import datetime
-from time import time, sleep
+from time import time
 import numpy as np
 import torch
 import torch.optim
@@ -38,6 +38,7 @@ class Solver(object):
 
         # Create the FuseNet model
         self.model = FuseNet(self.seg_class_num, self.gpu_device, self.use_class)
+        print(self.model)
 
     def reset_histories_and_losses(self):
         """
@@ -66,7 +67,7 @@ class Solver(object):
 
         lam_text = ''
         if lam:
-            lam_text = ('_' + '%.5f' % lam).replace('.', '_')
+            lam_text = ('_class_' + '%.5f' % lam).replace('.', '_')
         now = datetime.datetime.now()
 
         # Save checkpoint with the name including epoch, - if exists, lambda value for classification - and date

@@ -212,7 +212,7 @@ class FuseNet(nn.Module):
             nn.Conv2d(64, num_labels, kernel_size=3, padding=1).cuda(gpu_device),
         )
 
-        print('\r[INFO] FuseNet model has been created')
+        print('\r[INFO] FuseNet model has been created' + ' '*60)
         self.initialize_weights()
         print('[INFO] Model weights have been initialized using He initialization')
 
