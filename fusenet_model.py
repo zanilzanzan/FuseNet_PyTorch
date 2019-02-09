@@ -9,6 +9,11 @@ class FuseNet(nn.Module):
     def __init__(self, num_labels, gpu_device=0, use_class=True):
         super(FuseNet, self).__init__()
 
+        print('[PROGRESS] Creating FuseNet model with %i segmentation classes' % num_labels, end="", flush=True)
+        if use_class:
+            num_classes = 10
+            print(' and %i scene classes' % num_classes, end="", flush=True)
+
         # Load pre-trained VGG-16 weights to two separate variables.
         # They will be used in defining the depth and RGB encoder sequential layers.
         feats = list(models.vgg16(pretrained=True).features.children())
@@ -22,9 +27,6 @@ class FuseNet(nn.Module):
 
         bn_moment = 0.1
         self.use_class = use_class
-
-        if use_class:
-            num_classes = 10
 
         # DEPTH ENCODER
         self.conv11d = nn.Conv2d(1, 64, kernel_size=3, padding=1).cuda(gpu_device)
@@ -210,7 +212,7 @@ class FuseNet(nn.Module):
             nn.Conv2d(64, num_labels, kernel_size=3, padding=1).cuda(gpu_device),
         )
 
-        print('[INFO] FuseNet model has been created')
+        print('\r[INFO] FuseNet model has been created')
         self.initialize_weights()
         print('[INFO] Model weights have been initialized using He initialization')
 
@@ -309,14 +311,3 @@ class FuseNet(nn.Module):
             return y, y_class
         return y
 
-    # def save(self, path):
-    #     """
-    #     Save model with its parameters to the given path. Conventionally the
-    #     path should end with "*.model".
-    #
-    #     Inputs:
-    #     - path: path string
-    #     """
-    #     print('Saving model: %s' % path)
-    #     torch.save(self, path)
-    #     print('Model saved: %s' % path)

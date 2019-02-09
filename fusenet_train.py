@@ -1,47 +1,58 @@
+import os
 import datetime
 import torch
 from torch.utils import data
 from fusenet_solver import Solver
 from utils.data_utils import get_data
 from utils.loss_utils import cross_entropy_2d
+from options.train_options import TrainOptions
+
+
+def print_time_info(start_time, end_time):
+    print('[INFO] Start and end time of the previous training session: %s - %s'
+          % (start_date_time.strftime('%d.%m.%Y %H:%M:%S'), end_time.strftime('%d.%m.%Y %H:%M:%S')))
+    print('[INFO] Total time the previous training session took:', (end_time - start_time), '\n')
+
 
 if __name__ == '__main__':
-    gpu_device = 0
-    use_class = True
-    resume = True
-    dset_name = 'NYU'
+    opt = TrainOptions().parse()
 
-    if dset_name == 'NYU':
+    dset_name = os.path.basename(opt.dataroot)
+    if dset_name.lower().find('nyu') is not -1:
         dset_info = {'NYU': 40}
-    elif dset_name == 'SUN':
+    elif dset_name.lower().find('sun') is not -1:
         dset_info = {'SUN': 37}
     else:
-        raise NameError('Dataset name should be either NYU or SUN')
+        raise NameError('Name of the dataset file should accordingly contain either nyu or sun in it')
 
-    train_data, test_data = get_data(dset_name=dset_name, use_train=True, use_test=True, use_class=use_class)
+    print('[INFO] %s dataset is being processed.' % list(dset_info.keys())[0])
+    train_data, test_data = get_data(opt, use_train=True, use_test=True)
 
-    train_loader = torch.utils.data.DataLoader(train_data, batch_size=2, shuffle=True, num_workers=1)
-    test_loader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
+    train_loader = torch.utils.data.DataLoader(train_data, batch_size=opt.batch_size, shuffle=True, num_workers=opt.num_workers)
+    test_loader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=opt.num_workers)
     print("[INFO] Data loaders for %s dataset have been created" % dset_name)
 
-    # Grid search for lambda values
-    # Lambda is the coefficient of the classification loss
-    # i.e.: total_loss = segmentation_loss + lambda * classification_loss
-    lambdas = torch.linspace(0.04, 0.05, steps=10).cuda(gpu_device)
+    if opt.use_class:
+        # Grid search for lambda values
+        # Lambda is the coefficient of the classification loss
+        # i.e.: total_loss = segmentation_loss + lambda * classification_loss
+        start, end, steps = opt.lambda_class_range
+        lambdas = torch.linspace(start, end, steps=int(steps)).cuda(opt.gpu_id)
 
-    for lam in lambdas:
+        for i, lam in enumerate(lambdas):
+            start_date_time = datetime.datetime.now().replace(microsecond=0)
+            print('[INFO] Training session: [%i of %i]' % (i+1, steps))
+            print('[INFO] Lambda value for this training session: %.5f' % lam)
 
+            solver = Solver(opt, dset_info, loss_func=cross_entropy_2d)
+            solver.train_model(train_loader, test_loader, num_epochs=opt.num_epochs, log_nth=opt.print_freq, lam=lam)
+
+            end_date_time = datetime.datetime.now().replace(microsecond=0)
+            print(start_date_time, end_date_time)
+    else:
+        # Run an individual training session
         start_date_time = datetime.datetime.now().replace(microsecond=0)
-        solver = Solver(dset_info, gpu_device, optim_args={"lr": 5e-3, "weight_decay": 0.0005}, loss_func=cross_entropy_2d,
-                        use_class=use_class)
-        print('[INFO] Lambda value for this training session: %.5f' % lam)
-
-        if use_class:
-            solver.train_model(train_loader, test_loader, resume, num_epochs=1, log_nth=5, lam=lam)
-        else:
-            solver.train_model(train_loader, test_loader, resume, num_epochs=1, log_nth=5)
+        solver = Solver(opt, dset_info, loss_func=cross_entropy_2d)
+        solver.train_model(train_loader, test_loader, num_epochs=opt.num_epochs, log_nth=opt.print_freq)
         end_date_time = datetime.datetime.now().replace(microsecond=0)
-
-        print('[INFO] Start and end time of the previous training session: %s - %s'
-              % (start_date_time.strftime('%d.%m.%Y %H:%M:%S'), end_date_time.strftime('%d.%m.%Y %H:%M:%S')))
-        print('[INFO] Total time the previous training session took:', (end_date_time - start_date_time), '\n')
+        print(start_date_time, end_date_time)

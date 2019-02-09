@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import h5py
 import torch
@@ -34,18 +35,14 @@ class CreateData(data.Dataset):
         return len(self.seg_label)
 
 
-def get_data(dset_name='NYU', use_train=True, use_test=True, use_class=False):
+def get_data(opt, use_train=True, use_test=True):
     """
     Load NYU_v2 or SUN rgb-d dataset in hdf5 format from disk and prepare
     it for classifiers.
     """
-    # Load the chosen data path  (!) Make this part dynamic as well
-    if dset_name == 'SUN':
-        print('[INFO] SUN RGB-D dataset is being processed')
-        path = './data/sn_class_10_db.h5'
-    elif dset_name == 'NYU':
-        path = './data/nyu_class_10_db.h5'
-        print('[INFO] NYU-v2 RGB-D dataset is being processed')
+    # Load the chosen data path
+    if os.path.exists(opt.dataroot):
+        path = opt.dataroot
     else:
         raise Exception('Wrong data requested. Please choose either "NYU" or "SUN".')
     
@@ -56,12 +53,12 @@ def get_data(dset_name='NYU', use_train=True, use_test=True, use_class=False):
 
     # Create python dicts containing numpy arrays of training samples
     if use_train:
-        train_dataset_generator = dataset_generator(h5file, 'train', use_class)
+        train_dataset_generator = dataset_generator(h5file, 'train', opt.use_class)
         print('[INFO] Training set generator has been created')
 
     # Create python dicts containing numpy arrays of test samples
     if use_test:
-        test_dataset_generator = dataset_generator(h5file, 'test', use_class)
+        test_dataset_generator = dataset_generator(h5file, 'test', opt.use_class)
         print('[INFO] Test set generator has been created')
     h5file.close()
     return train_dataset_generator, test_dataset_generator

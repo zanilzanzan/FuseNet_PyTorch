@@ -1,5 +1,4 @@
 import os
-import shutil
 import datetime
 from time import time, sleep
 import numpy as np
@@ -13,26 +12,28 @@ class Solver(object):
     default_sgd_args = {"lr": 1e-3,
                         "momentum": 0.9,
                         "weight_decay": 0.0005}
+    # default_adam_args = {"lr": 1e-4,
+    #                      "betas": (0.9, 0.999),
+    #                      "eps": 1e-8,
+    #                      "weight_decay": 0.0}
 
-    default_adam_args = {"lr": 1e-4,
-                         "betas": (0.9, 0.999),
-                         "eps": 1e-8,
-                         "weight_decay": 0.0}
+    def __init__(self, opt, dset_info, loss_func=torch.nn.CrossEntropyLoss):
 
-    def __init__(self, dset_info, gpu_device=0, optim=torch.optim.SGD, optim_args={}, loss_func=torch.nn.CrossEntropyLoss, use_class=False):
+        self.opt = opt
         self.dset_name, self.seg_class_num = next(iter(dset_info.items()))
-        self.gpu_device = gpu_device
-        torch.cuda.set_device(gpu_device)
+        self.gpu_device = opt.gpu_id
         print('[INFO] Chosen GPU Device: %s' % torch.cuda.current_device())
 
         # Set the optimizer
+        optim_args = {"lr": opt.lr, "weight_decay": opt.weight_decay}
         optim_args_merged = self.default_sgd_args.copy()
         optim_args_merged.update(optim_args)
         self.optim_args = optim_args_merged
-        self.optim = optim
+        if opt.optim.lower() == 'sgd':
+            self.optim = torch.optim.SGD
 
         self.loss_func = loss_func()
-        self.use_class = use_class
+        self.use_class = opt.use_class
         self.states = dict()
 
         # Create the FuseNet model
@@ -58,11 +59,8 @@ class Solver(object):
     def save_checkpoint(self, state, lam, is_best):
         """ Write docstring
         """
-        if self.dset_name == 'NYU':
-            checkpoint_dir = './checkpoints/nyu/'  # take the output dir from user!
-        else:
-            checkpoint_dir = './checkpoints/sun/'
-
+        print('[PROGRESS] Saving the model', end="", flush=True)
+        checkpoint_dir = os.path.join(self.opt.checkpoints_dir, self.opt.name, self.dset_name.lower())
         if not os.path.exists(checkpoint_dir):
             os.makedirs(checkpoint_dir)
 
@@ -75,17 +73,21 @@ class Solver(object):
         checkpoint_filename = os.path.join(checkpoint_dir, 'model_checkpoint' + lam_text + '_{}'.format(state['epoch'] + 1)
                                            + now.strftime('_%d%m%Y') + '.pth.tar')
 
-        # state = {**self.states, **{'state_dict': self.model.state_dict(), 'optimizer': optim.state_dict()}}
-        torch.save(state, checkpoint_filename)
-
         # If the model also the best performing model in the training session save it separately
         if is_best:
             best_model_filename = os.path.join(checkpoint_dir, 'best_model' + lam_text + '.pth.tar')
-            shutil.copyfile(checkpoint_filename, best_model_filename)
-            print('[INFO] Best model has been successfully updated: %s' % best_model_filename)
-        print('[INFO] Checkpoint has been saved: %s' % checkpoint_filename )
+            self.states['best_model_name'] = best_model_filename
+            torch.save(state, best_model_filename)
+            # shutil.copyfile(checkpoint_filename, best_model_filename)
+            print('\r[INFO] Best model has been successfully updated: %s' % best_model_filename)
+            # shutil.copyfile(best_model_filename, checkpoint_filename)
+            # print('[INFO] Checkpoint has been saved: %s' % checkpoint_filename)
+            # return
 
-    def load_checkpoint(self, optim=None, checkpoint_path='./checkpoints/nyu/model.pth.tar', only_model=False):
+        torch.save(state, checkpoint_filename)
+        print('[INFO] Checkpoint has been saved: %s' % checkpoint_filename)
+
+    def load_checkpoint(self, checkpoint_path, optim=None, only_model=False):
         """ Write docstring
         """
         if os.path.isfile(checkpoint_path):
@@ -131,16 +133,14 @@ class Solver(object):
         return_dict.update({'state_dict': self.model.state_dict(), 'optimizer': optim.state_dict()})
         return return_dict
 
-    def validate_model(self, val_loader, lam):
+    def validate_model(self, val_loader):
         """ Write docstring
         :param val_loader:
-        :param lam:
         :return:
         """
+        print('\n[PROGRESS] Validating the model',  end="", flush=True)
         # Evaluate model in eval mode
         self.model.eval()
-        print('EVAL MODE!')
-
         val_seg_scores = []
         val_class_scores = []
 
@@ -170,26 +170,19 @@ class Solver(object):
         self.states['val_seg_acc_hist'].append(np.mean(val_seg_scores))
         if self.use_class:
             self.states['val_class_acc_hist'].append(np.mean(val_class_scores))
+        print('\r[INFO] Validation has been completed')
         print('VAL SEG HISTORY: ', self.states['val_seg_acc_hist'])
 
-    def train_model(self, train_loader, val_loader, resume=False, num_epochs=10, log_nth=0, lam=None):
+    def train_model(self, train_loader, val_loader, num_epochs=10, log_nth=0, lam=None):
         """
         Train a given model with the provided data.
 
         Parameters
         ----------
-        gpu_device: int
-            ID of the selected GPU device. type: int
-        model:
-            model object initialized from a torch.nn.Module
-        dset_name: str
-            data set type, string: SUN or NYU
         train_loader:
             train data in torch.utils.data.DataLoader
         val_loader:
             val data in torch.utils.data.DataLoader
-        resume: bool - default: False
-            parameter that indicates training mode
         num_epochs: int - default: 10
             total number of training epochs
         log_nth: int - default: 0
@@ -197,7 +190,6 @@ class Solver(object):
         lam: torch.float32
             lambda value used as weighting coefficient for classification loss
         """
-        loss = 0.0
         # Initiate/reset history lists and running-loss parameters
         self.reset_histories_and_losses()
 
@@ -209,20 +201,20 @@ class Solver(object):
 
         criterion = self.loss_func
         # Load pre-trained model parameters if resume option is chosen
-        if resume:
+        if self.opt.resume_train:
             print('[INFO] Selected training mode: RESUME')
-            optim = self.load_checkpoint(optim)
+            optim = self.load_checkpoint(self.opt.load_checkpoint, optim)
             print('[INFO] TRAINING CONTINUES')
         else:
             print('[INFO] Selected training mode: NEW')
             print('[INFO] TRAINING STARTS')
 
         # Determine at which epoch training session must end
-        star_epoch = self.states['epoch']+1
-        end_epoch = star_epoch + num_epochs
+        start_epoch = self.states['epoch']
+        end_epoch = start_epoch + num_epochs
     
         # Start Training
-        for epoch in range(star_epoch, end_epoch):
+        for epoch in range(start_epoch, end_epoch):
             # timestep1 = time()
 
             running_loss = 0.0
@@ -293,12 +285,12 @@ class Solver(object):
                         running_class_loss /= log_nth
                         print("\r[EPOCH: %d/%d Iter: %d/%d ] Total_Loss: %.3f Seg_Loss: %.3f "
                               "Class_Loss: %.3f Best_Acc: %.3f LR: %.2e Lam: %.5f Time: %.2f seconds         "
-                              % (epoch +1, end_epoch, i + 1, iter_per_epoch, running_loss, running_seg_loss,
+                              % (epoch + 1, end_epoch, i + 1, iter_per_epoch, running_loss, running_seg_loss,
                                  running_class_loss, self.states['best_val_seg_acc'], optim.param_groups[0]['lr'], lam,
                                  (time_stamp_3-time_stamp_2)), end='\r')
                     else:
                         print("\r[EPOCH: %d/%d Iter: %d/%d ] Seg_Loss: %.3f Best_Acc: %.3f LR: %.2e Time: %.2f seconds       "
-                              % (epoch +1, end_epoch, i + 1, iter_per_epoch, running_loss, self.states['best_val_seg_acc'],
+                              % (epoch + 1, end_epoch, i + 1, iter_per_epoch, running_loss, self.states['best_val_seg_acc'],
                                  optim.param_groups[0]['lr'], (time_stamp_3-time_stamp_2)), end='\r')
 
             # Log and save accuracy and loss values
@@ -318,7 +310,7 @@ class Solver(object):
             self.states['train_seg_acc_hist'].append(train_seg_acc)
 
             # Run the model on the validation set and gather segmentation and classification accuracy
-            self.validate_model(val_loader, lam)
+            self.validate_model(val_loader)
 
             if self.use_class:
                 train_class_acc = np.mean(train_class_scores)
@@ -333,7 +325,7 @@ class Solver(object):
                       % (epoch + 1, end_epoch, train_seg_acc, running_loss, self.states['val_seg_acc_hist'][-1]))
 
             # Save the checkpoint and update the model
-            if (epoch+1) > 0:
+            if (epoch+1) > self.opt.save_epoch_freq:
                 current_val_seg_acc = self.states['val_seg_acc_hist'][-1]
                 best_val_seg_acc = self.states['best_val_seg_acc']
                 is_best = current_val_seg_acc > best_val_seg_acc
@@ -345,14 +337,13 @@ class Solver(object):
                     # model_state = self.update_model_state(epoch, self.model)
                     self.save_checkpoint(self.update_model_state(optim), lam, is_best)
 
-        del self.model
         print("[FINAL] TRAINING COMPLETED")
         self.seg_acc_calculation(val_loader)
 
     def seg_acc_calculation(self, val_loader):
-        print('[INFO] Calculating Global, IoU, and Mean accuracy')
-        checkpoint_path = './checkpoints/nyu/best.pth.tar'
-        self.load_checkpoint(checkpoint_path, only_model=True)
+        print("[INFO] Calculating Global, IoU, and Mean accuracy. This may take up to a minute. Because the script is a little crappy."
+              " I admit that. If you think you can optimize it, please be my guest and send a merge request.")
+        self.load_checkpoint(self.states['best_model_name'], only_model=True)
 
         # Calculate IoU and Mean accuracy for semantic segmentation
         num_classes = self.seg_class_num
@@ -364,7 +355,6 @@ class Solver(object):
             val_rgb_inputs = Variable(batch[0].cuda(self.gpu_device))
             val_d_inputs = Variable(batch[1].cuda(self.gpu_device))
             val_labels = Variable(batch[2].cuda(self.gpu_device))
-            # val_class_labels = Variable(batch[3].cuda(self.gpu_device))
 
             if self.use_class:
                 val_outputs, _ = self.model(val_rgb_inputs, val_d_inputs)
