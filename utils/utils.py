@@ -2,7 +2,7 @@ import torch
 
 
 def get_class_weights(dset_name='sun'):
-    with open('./weights.txt', 'r') as f:
+    with open('./text/weights.txt', 'r') as f:
         lines = f.read().splitlines()
     dset_weights, read = [], False
 

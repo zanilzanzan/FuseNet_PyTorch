@@ -30,7 +30,7 @@ class Visualize:
                                  9: 'bookstore', 10: 'others'}
 
         # Read the palette values that will be used for coloring the semantic segmentation labels, from the .txt file
-        with open('./utils/visualization_palette.txt', 'r') as f:
+        with open('./utils/text/visualization_palette.txt', 'r') as f:
             lines = f.read().splitlines()
             palette = []
         for line in lines:
