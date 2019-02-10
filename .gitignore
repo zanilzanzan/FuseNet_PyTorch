@@ -1,6 +1,5 @@
 .*
-/data
+/datasets
 /models
 /checkpoints
-/.ipynb_checkpoints
 /results

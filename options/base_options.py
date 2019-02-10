@@ -8,7 +8,7 @@ class BaseOptions():
         self.initialized = False
 
     def initialize(self, parser):
-        parser.add_argument('--num_workers', type=int, default=1, help='number or workers for data loaders')
+        parser.add_argument('--num_workers', type=int, default=1, help='number or workers for datasets loaders')
         parser.add_argument('--gpu_id', type=int, default=0, help='gpu device id; this project currently supports only one-gpu training')
         parser.add_argument('--checkpoints_dir', type=str, default='./checkpoints', help='models are saved here')
         parser.add_argument('--name', type=str, default='experiment', help='checkpoints of the current experiment are saved here')
@@ -47,12 +47,15 @@ class BaseOptions():
 
         # save to the disk
         expr_dir = os.path.join(opt.checkpoints_dir, opt.name)
-        if not os.path.exists(expr_dir):
-            os.mkdir(expr_dir)
-        file_name = os.path.join(expr_dir, 'opt.txt')
-        with open(file_name, 'wt') as opt_file:
-            opt_file.write(message)
-            opt_file.write('\n')
+
+        if self.isTrain:
+            if not os.path.exists(expr_dir):
+                os.mkdir(expr_dir)
+
+            file_name = os.path.join(expr_dir, 'opt.txt')
+            with open(file_name, 'wt') as opt_file:
+                opt_file.write(message)
+                opt_file.write('\n')
 
     def parse(self):
         opt = self.gather_options()

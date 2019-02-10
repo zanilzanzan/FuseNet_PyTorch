@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image, ImageFont, ImageDraw
 import torch
 from torch.autograd import Variable
-from fusenet_model import FuseNet
+from models.fusenet_model import FuseNet
 from utils.data_utils import get_data
 from options.test_options import TestOptions
 

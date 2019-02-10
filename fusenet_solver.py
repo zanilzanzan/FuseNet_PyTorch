@@ -5,8 +5,8 @@ import numpy as np
 import torch
 import torch.optim
 from torch.autograd import Variable
-from fusenet_model import FuseNet
-from fusenet_result_visualization import Visualize
+from models.fusenet_model import FuseNet
+from fusenet_visualize import Visualize
 
 
 class Solver(object):
@@ -157,7 +157,7 @@ class Solver(object):
                 val_class_labels = Variable(batch[3].cuda(self.gpu_device))
                 # Infer segmentation and classification results
                 val_seg_outputs, val_class_outputs = self.model(val_rgb_inputs, val_d_inputs)
-                # val_class_preds.data.cpu().numpy()[0]
+                # val_class_preds.datasets.cpu().numpy()[0]
                 _, val_preds_class = torch.max(val_class_outputs, 1)
                 val_preds_class += 1
                 val_class_scores.append(np.mean(val_preds_class.data.cpu().numpy() == val_class_labels.data.cpu().numpy()))
@@ -186,7 +186,7 @@ class Solver(object):
         train_loader:
             train data in torch.utils.data.DataLoader
         val_loader:
-            val data in torch.utils.data.DataLoader
+            validation data in torch.utils.data.DataLoader
         num_epochs: int - default: 10
             total number of training epochs
         log_nth: int - default: 0
@@ -287,13 +287,13 @@ class Solver(object):
                     if self.use_class:
                         running_seg_loss /= log_nth
                         running_class_loss /= log_nth
-                        print("\r[EPOCH: %d/%d Iter: %d/%d ] Total_Loss: %.3f Seg_Loss: %.3f "
+                        print("\r[Epoch: %d/%d Iter: %d/%d] Total_Loss: %.3f Seg_Loss: %.3f "
                               "Class_Loss: %.3f Best_Acc: %.3f LR: %.2e Lam: %.5f Time: %.2f seconds         "
                               % (epoch + 1, end_epoch, i + 1, iter_per_epoch, running_loss, running_seg_loss,
                                  running_class_loss, self.states['best_val_seg_acc'], optim.param_groups[0]['lr'], lam,
                                  (time_stamp_3-time_stamp_2)), end='\r')
                     else:
-                        print("\r[EPOCH: %d/%d Iter: %d/%d ] Seg_Loss: %.3f Best_Acc: %.3f LR: %.2e Time: %.2f seconds       "
+                        print("\r[Epoch: %d/%d Iter: %d/%d] Seg_Loss: %.3f Best_Acc: %.3f LR: %.2e Time: %.2f seconds       "
                               % (epoch + 1, end_epoch, i + 1, iter_per_epoch, running_loss, self.states['best_val_seg_acc'],
                                  optim.param_groups[0]['lr'], (time_stamp_3-time_stamp_2)), end='\r')
 
@@ -320,12 +320,12 @@ class Solver(object):
                 train_class_acc = np.mean(train_class_scores)
                 self.states['train_class_acc_hist'].append(train_class_acc)
 
-                print("[EPOCH: %d/%d] TRAIN Seg_Acc/Class_Acc/Loss/Seg_Loss/Class_Loss: %.3f/%.3f/%.3f/%.3f/%.3f "
+                print("[Epoch: %d/%d] TRAIN Seg_Acc/Class_Acc/Loss/Seg_Loss/Class_Loss: %.3f/%.3f/%.3f/%.3f/%.3f "
                       "VALIDATION Seg_Acc/Class_Acc: %.3f %.3f"
                       % (epoch + 1, end_epoch, train_seg_acc, train_class_acc, running_loss, running_seg_loss,
                          running_class_loss, self.states['val_seg_acc_hist'][-1], self.states['val_class_acc_hist'][-1]))
             else:
-                print("[EPOCH: %d/%d] TRAIN Seg_Acc/Seg_Loss: %.3f/%.3f VALIDATION Seg_Acc: %.3f"
+                print("[Epoch: %d/%d] TRAIN Seg_Acc/Seg_Loss: %.3f/%.3f VALIDATION Seg_Acc: %.3f"
                       % (epoch + 1, end_epoch, train_seg_acc, running_loss, self.states['val_seg_acc_hist'][-1]))
 
             # Save the checkpoint and update the model

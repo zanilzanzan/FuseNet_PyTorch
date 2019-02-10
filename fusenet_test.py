@@ -37,4 +37,3 @@ if __name__ == '__main__':
 
     end_date_time = datetime.datetime.now().replace(microsecond=0)
     print_time_info(start_date_time, end_date_time)
-

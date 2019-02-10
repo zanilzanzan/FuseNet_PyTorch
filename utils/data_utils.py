@@ -40,11 +40,11 @@ def get_data(opt, use_train=True, use_test=True):
     Load NYU_v2 or SUN rgb-d dataset in hdf5 format from disk and prepare
     it for classifiers.
     """
-    # Load the chosen data path
+    # Load the chosen datasets path
     if os.path.exists(opt.dataroot):
         path = opt.dataroot
     else:
-        raise Exception('Wrong data requested. Please choose either "NYU" or "SUN"')
+        raise Exception('Wrong datasets requested. Please choose either "NYU" or "SUN"')
     
     h5file = h5py.File(path, 'r')
 
