@@ -10,28 +10,24 @@ Other implementations of FuseNet:
 [[Caffe]](https://github.com/tum-vision/fusenet) 
 [[PyTorch]](https://github.com/MehmetAygun/fusenet-pytorch)
 
-<img src="images/framework_class.jpg" width="800px"/>
+<p><img src="images/framework_class.jpg" width="700px" style="margin:0px 45px"/></p>
 
-### Dependencies
+## Prerequisites
 - python 3.6
 - [PyTorch 0.4.0 CUDA 9.1 version](https://pytorch.org/get-started/previous-versions/)
 
-### Datasets 
+## Datasets 
 
-#### NYU
+### [NYU-Depth V2](https://cs.nyu.edu/~silberman/datasets/nyu_depth_v2.html)
+1. Simply download the preprocessed dataset, in HDF5 format, with 40 semantic-segmentation and 10 scene classes here: [train + test set](https://vision.in.tum.de/webarchive/hazirbas/fusenet-pytorch/nyu/nyu_class_10_db.h5)
+2. Preprocessed dataset contains 1449 (train: 795, test: 654) RGB-D images with 320x240 resolution, their semantic-segmentation and scene-type annotations.
+3. Originially, NYU-Depth V2 dataset has 27 distinct scene types associated with the images. The number has been redcued to 10 classes (9 most common categories and the rest) 
+based on the mapping [Gupta et al.](http://saurabhg.web.illinois.edu/pdfs/gupta2013perceptual.pdf) used. Scene mapping text file can be accessed [here](utils/text/nyu_scene_mapping.txt).
 
-1. Simply download the processed .h5py dataset with 40 annotations and 10 classes here: [train + test set](https://vision.in.tum.de/webarchive/hazirbas/fusenet-pytorch/nyu/nyu_class_10_db.h5)
+### [SUNRGBD](http://rgbd.cs.princeton.edu/)
+This section will be updated soon.
 
-2. Scene mapping can be found [here](utils/text/nyu_scene_mapping.txt)
-
-
-#### SUNRGBD
-
-1. Download the dataset [here](https://vision.in.tum.de/webarchive/hazirbas/fusenet-pytorch/sun/sn_class_10_db.h5)
-
-2. Class weights are set in [FuseNet.py](FuseNet.py#L306). In case of an update on the training set, please adjust the weights, accordingly.
-
-### Training
+## Training
 - To train Fusenet run `Train_FuseNet.py`. Dataset choice is manually implemented in the script for now. The dataset is taken and prepared by `utils/data_utils_class.py`, therefore make sure to give the correct path in the script.
 
 - Note: VGG weights are downloaded automatically at the beginning of the training process. Depth layers weights will also be initialized with their vgg16 equivalent layers. However, for 'conv1_1' the weights will be averaged to fit one channel depth input (3, 3, 3, 64) -> (3, 3, 1, 64)
