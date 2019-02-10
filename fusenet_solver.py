@@ -199,6 +199,7 @@ class Solver(object):
 
         # Based on dataset sizes determine how many iterations per epoch will be done
         iter_per_epoch = len(train_loader)
+        print('ITER PER EPOCH: ', iter_per_epoch)
 
         # Initiate optimization method and loss function
         optim = self.optim(self.model.parameters(), **self.optim_args)
@@ -221,9 +222,9 @@ class Solver(object):
         for epoch in range(start_epoch, end_epoch):
             # timestep1 = time()
 
-            running_loss = 0.0
-            running_class_loss = 0.0
-            running_seg_loss = 0.0
+            running_loss = []
+            running_class_loss = []
+            running_seg_loss = []
             train_seg_scores = []
             train_class_scores = []
 
@@ -257,12 +258,11 @@ class Solver(object):
                 optim.step()
 
                 # Update running losses
-                running_loss += loss.item()
-                del loss
+                running_loss.append(loss.item())
 
                 if self.use_class:
-                    running_seg_loss += seg_loss
-                    running_class_loss += class_loss
+                    running_seg_loss.append(seg_loss)
+                    running_class_loss.append(class_loss)
 
                     _, train_class_preds = torch.max(output_class, 1)
 
@@ -282,31 +282,27 @@ class Solver(object):
                 # Print each log_nth mini-batches or at the end of the epoch
                 if (i+1) % log_nth == 0 or (i+1) == iter_per_epoch:
                     time_stamp_3 = time()
-                    running_loss /= log_nth
-
+                    loss_log_nth = np.mean(running_loss[-log_nth:])
                     if self.use_class:
-                        running_seg_loss /= log_nth
-                        running_class_loss /= log_nth
+                        seg_loss_log_nth = np.mean(running_seg_loss[-log_nth:])
+                        class_loss_log_nth = np.mean(running_class_loss[-log_nth:])
                         print("\r[Epoch: %d/%d Iter: %d/%d] Total_Loss: %.3f Seg_Loss: %.3f "
                               "Class_Loss: %.3f Best_Acc: %.3f LR: %.2e Lam: %.5f Time: %.2f seconds         "
-                              % (epoch + 1, end_epoch, i + 1, iter_per_epoch, running_loss, running_seg_loss,
-                                 running_class_loss, self.states['best_val_seg_acc'], optim.param_groups[0]['lr'], lam,
+                              % (epoch + 1, end_epoch, i + 1, iter_per_epoch, loss_log_nth, seg_loss_log_nth,
+                                 class_loss_log_nth, self.states['best_val_seg_acc'], optim.param_groups[0]['lr'], lam,
                                  (time_stamp_3-time_stamp_2)), end='\r')
                     else:
                         print("\r[Epoch: %d/%d Iter: %d/%d] Seg_Loss: %.3f Best_Acc: %.3f LR: %.2e Time: %.2f seconds       "
-                              % (epoch + 1, end_epoch, i + 1, iter_per_epoch, running_loss, self.states['best_val_seg_acc'],
+                              % (epoch + 1, end_epoch, i + 1, iter_per_epoch, loss_log_nth, self.states['best_val_seg_acc'],
                                  optim.param_groups[0]['lr'], (time_stamp_3-time_stamp_2)), end='\r')
 
             # Log and save accuracy and loss values
             # Average accumulated loss values over the whole dataset
-            running_loss /= iter_per_epoch
-            self.states['train_loss_hist'].append(running_loss)
+            self.states['train_loss_hist'].append(np.mean(running_loss))
 
             if self.use_class:
-                running_seg_loss /= iter_per_epoch
-                self.states['train_seg_loss_hist'].append(running_seg_loss)
-                running_class_loss /= iter_per_epoch
-                self.states['train_class_loss_hist'].append(running_class_loss)
+                self.states['train_seg_loss_hist'].append(np.mean(running_seg_loss))
+                self.states['train_class_loss_hist'].append(np.mean(running_class_loss))
                 # print('Train Class Scores shape and itself: ', len(train_class_scores), train_class_scores)
             # print('Train Seg Scores shape and itself: ', len(train_seg_scores), train_seg_scores)
 
@@ -322,11 +318,14 @@ class Solver(object):
 
                 print("[Epoch: %d/%d] TRAIN Seg_Acc/Class_Acc/Loss/Seg_Loss/Class_Loss: %.3f/%.3f/%.3f/%.3f/%.3f "
                       "VALIDATION Seg_Acc/Class_Acc: %.3f %.3f"
-                      % (epoch + 1, end_epoch, train_seg_acc, train_class_acc, running_loss, running_seg_loss,
-                         running_class_loss, self.states['val_seg_acc_hist'][-1], self.states['val_class_acc_hist'][-1]))
+                      % (epoch + 1, end_epoch, train_seg_acc, train_class_acc,
+                         self.states['train_loss_hist'][-1], self.states['train_seg_loss_hist'][-1],
+                         self.states['train_class_loss_hist'][-1], self.states['val_seg_acc_hist'][-1],
+                         self.states['val_class_acc_hist'][-1]))
             else:
                 print("[Epoch: %d/%d] TRAIN Seg_Acc/Seg_Loss: %.3f/%.3f VALIDATION Seg_Acc: %.3f"
-                      % (epoch + 1, end_epoch, train_seg_acc, running_loss, self.states['val_seg_acc_hist'][-1]))
+                      % (epoch + 1, end_epoch, train_seg_acc, self.states['train_seg_loss_hist'][-1],
+                         self.states['val_seg_acc_hist'][-1]))
 
             # Save the checkpoint and update the model
             if (epoch+1) > self.opt.save_epoch_freq:

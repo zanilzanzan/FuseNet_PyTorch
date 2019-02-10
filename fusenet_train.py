@@ -20,7 +20,7 @@ if __name__ == '__main__':
     else:
         raise NameError('Name of the dataset file should accordingly contain either nyu or sun in it')
 
-    print('[INFO] %s dataset is being processed.' % list(dset_info.keys())[0])
+    print('[INFO] %s dataset is being processed' % list(dset_info.keys())[0])
     train_data, test_data = get_data(opt, use_train=True, use_test=True)
 
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=opt.batch_size, shuffle=True, num_workers=opt.num_workers)
