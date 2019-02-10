@@ -10,8 +10,10 @@ from options.test_options import TestOptions
 
 
 class Visualize:
-    def __init__(self, opt):
+    def __init__(self, opt, model=None, test_loader=None):
         self.opt = opt
+        self.model = model
+        self.test_loader = test_loader
 
         # Read the dataset and create dataset loader
         self.dset_name = os.path.basename(self.opt.dataroot)
@@ -74,12 +76,13 @@ class Visualize:
                 draw.text((650, 10), ('scene class: ' + self.scene_class_dict[scene_pred+1]), (255, 255, 255), font=font)
 
             self.new_image.save(os.path.join(self.save_path, 'prediction_' + str(idx+1) + '.png'))
-            print('[PROGRESS] %i of %i images saved     ' % (idx+1, self.test_size), end='\r')
+            print('[PROGRESS] Saving images: %i of %i     ' % (idx+1, len(self.test_loader)), end='\r')
 
     def visualize_predictions(self):
         """
         :return:
         """
+        print('[INFO] Visualization of the results starts')
         if os.path.exists(self.save_path):
             key = input('[INFO] Taget directory already exists. You might lose previously saved images. Continue:Abort (y:n): ')
             if not key.lower() == 'y':
@@ -88,28 +91,30 @@ class Visualize:
         else:
             os.makedirs(self.save_path)
 
-        _, test_data = get_data(self.opt, use_train=False, use_test=True)
-        print("[INFO] %s dataset has been retrieved" % self.dset_name)
+        if self.test_loader is None:
+            _, test_data = get_data(self.opt, use_train=False, use_test=True)
+            print("[INFO] %s dataset has been retrieved" % self.dset_name)
 
-        test_loader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
-        print("[INFO] Test loader for %s dataset has been created" % self.dset_name)
+            self.test_loader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False, num_workers=1)
+            print("[INFO] Test loader for %s dataset has been created" % self.dset_name)
 
-        self.test_size = test_data.__len__()
         _, seg_class_num = next(iter(self.dset_info.items()))
 
-        # Read the FuseNet model path that will be used for prediction and load the weights to the initialized model
-        model = FuseNet(seg_class_num, self.opt.gpu_id, self.opt.use_class)
+        if self.model is None:
+            # Read the FuseNet model path that will be used for prediction and load the weights to the initialized model
+            self.model = FuseNet(seg_class_num, self.opt.gpu_id, self.opt.use_class)
 
-        checkpoint = torch.load(self.model_path)
-        model.load_state_dict(checkpoint['state_dict'])
-        print("[INFO] Weights from pretrained FuseNet model has been loaded. Checkpoint: %s" % self.model_path)
+            checkpoint = torch.load(self.model_path)
+            self.model.load_state_dict(checkpoint['state_dict'])
+            print("[INFO] Weights from pretrained FuseNet model has been loaded. Checkpoint: %s" % self.model_path)
 
-        model.eval()
+        self.model.eval()
+
         test_class_labels = None
         test_class_preds = None
 
         print("[INFO] Prediction starts. Resulting comparision images will be saved under: %s" % self.save_path)
-        for num, batch in enumerate(test_loader):
+        for num, batch in enumerate(self.test_loader):
             test_rgb_inputs = Variable(batch[0].cuda(self.gpu_device))
             test_depth_inputs = Variable(batch[1].cuda(self.gpu_device))
             test_seg_labels = Variable(batch[2].cuda(self.gpu_device))
@@ -117,7 +122,7 @@ class Visualize:
             if self.opt.use_class:
                 test_class_labels = Variable(batch[3].cuda(self.gpu_device))
                 # Predict the pixel-wise classification and scene classification results
-                test_seg_outputs, test_class_outputs = model(test_rgb_inputs, test_depth_inputs)
+                test_seg_outputs, test_class_outputs = self.model(test_rgb_inputs, test_depth_inputs)
 
                 # Take the maximum values from the feature maps produced by the output layers for classification
                 # Move the tensors to CPU as numpy arrays
@@ -125,7 +130,7 @@ class Visualize:
                 test_class_labels = test_class_labels.data.cpu().numpy()[0]
                 test_class_preds = test_class_preds.data.cpu().numpy()[0]
             else:
-                test_seg_outputs = model(test_rgb_inputs, test_depth_inputs)
+                test_seg_outputs = self.model(test_rgb_inputs, test_depth_inputs)
 
             # Take the maximum values from the feature maps produced by the output layers for segmentation
             # Move the tensors to CPU as numpy arrays
@@ -142,7 +147,7 @@ class Visualize:
             # Color semantic segmentation labels, print scene classification labels, and save comparison images
             self.paint_and_save(comparison_images, np.uint8(test_rgb_inputs), test_class_labels, test_class_preds, num)
 
-        print('[INFO] All %i images have been saved' % self.test_size)
+        print('[INFO] All %i images have been saved' % len(self.test_loader))
         print('[COMPLETED] Boring prediction images are now nice and colorful!')
 
 

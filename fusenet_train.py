@@ -6,12 +6,7 @@ from fusenet_solver import Solver
 from utils.data_utils import get_data
 from utils.loss_utils import cross_entropy_2d
 from options.train_options import TrainOptions
-
-
-def print_time_info(start_time, end_time):
-    print('[INFO] Start and end time of the previous training session: %s - %s'
-          % (start_date_time.strftime('%d.%m.%Y %H:%M:%S'), end_time.strftime('%d.%m.%Y %H:%M:%S')))
-    print('[INFO] Total time the previous training session took:', (end_time - start_time), '\n')
+from utils.utils import print_time_info
 
 
 if __name__ == '__main__':
@@ -48,11 +43,11 @@ if __name__ == '__main__':
             solver.train_model(train_loader, test_loader, num_epochs=opt.num_epochs, log_nth=opt.print_freq, lam=lam)
 
             end_date_time = datetime.datetime.now().replace(microsecond=0)
-            print(start_date_time, end_date_time)
+            print_time_info(start_date_time, end_date_time)
     else:
         # Run an individual training session
         start_date_time = datetime.datetime.now().replace(microsecond=0)
         solver = Solver(opt, dset_info, loss_func=cross_entropy_2d)
         solver.train_model(train_loader, test_loader, num_epochs=opt.num_epochs, log_nth=opt.print_freq)
         end_date_time = datetime.datetime.now().replace(microsecond=0)
-        print(start_date_time, end_date_time)
+        print_time_info(start_date_time, end_date_time)

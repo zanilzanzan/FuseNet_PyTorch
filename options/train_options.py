@@ -4,6 +4,7 @@ from .base_options import BaseOptions
 class TrainOptions(BaseOptions):
     def initialize(self, parser):
         parser = BaseOptions.initialize(self, parser)
+        parser.add_argument('--batch_size', type=int, default=4, help='input batch size for the training set')
         parser.add_argument('--print_freq', type=int, default=5, help='log training accuracy and loss every nth iteration')
         parser.add_argument('--save_epoch_freq', type=int, default=5, help='frequency of saving checkpoints at the end of epochs')
         parser.add_argument('--resume_train', type=bool, default=False, help='continue training: load the provided model')

@@ -6,6 +6,7 @@ import torch
 import torch.optim
 from torch.autograd import Variable
 from fusenet_model import FuseNet
+from fusenet_result_visualization import Visualize
 
 
 class Solver(object):
@@ -18,27 +19,29 @@ class Solver(object):
     #                      "weight_decay": 0.0}
 
     def __init__(self, opt, dset_info, loss_func=torch.nn.CrossEntropyLoss):
-
         self.opt = opt
         self.dset_name, self.seg_class_num = next(iter(dset_info.items()))
+        self.use_class = opt.use_class
+
         self.gpu_device = opt.gpu_id
         print('[INFO] Chosen GPU Device: %s' % torch.cuda.current_device())
 
-        # Set the optimizer
-        optim_args = {"lr": opt.lr, "weight_decay": opt.weight_decay}
-        optim_args_merged = self.default_sgd_args.copy()
-        optim_args_merged.update(optim_args)
-        self.optim_args = optim_args_merged
-        if opt.optim.lower() == 'sgd':
-            self.optim = torch.optim.SGD
-
-        self.loss_func = loss_func()
-        self.use_class = opt.use_class
-        self.states = dict()
-
         # Create the FuseNet model
         self.model = FuseNet(self.seg_class_num, self.gpu_device, self.use_class)
-        print(self.model)
+
+        if opt.isTrain:
+            # Set the optimizer
+            optim_args = {"lr": opt.lr, "weight_decay": opt.weight_decay}
+            optim_args_merged = self.default_sgd_args.copy()
+            optim_args_merged.update(optim_args)
+            self.optim_args = optim_args_merged
+            if opt.optim.lower() == 'sgd':
+                self.optim = torch.optim.SGD
+
+            self.loss_func = loss_func()
+
+        self.states = dict()
+        self.reset_histories_and_losses()
 
     def reset_histories_and_losses(self):
         """
@@ -341,33 +344,47 @@ class Solver(object):
         print("[FINAL] TRAINING COMPLETED")
         self.seg_acc_calculation(val_loader)
 
-    def seg_acc_calculation(self, val_loader):
-        print("[INFO] Calculating Global, IoU, and Mean accuracy. This may take up to a minute. Because the script is a little crappy."
+    def seg_acc_calculation(self, val_loader, vis_results=False):
+        """
+        :param val_loader:
+        :param vis_results:
+        :return:
+        """
+        # print("[INFO] Best VALIDATION (NYU-v2) Segmentation Accuracy: %s"
+        #       % self.states['val_seg_acc_hist'])
+        print("[INFO] Calculating Global, IoU, and Mean accuracy. This may take up to a minute. Because the method is a little crappy."
               " I admit that. If you think you can optimize it, please be my guest and send a merge request.")
-        self.load_checkpoint(self.states['best_model_name'], only_model=True)
+        if self.opt.isTrain:
+            self.load_checkpoint(self.states['best_model_name'], only_model=True)
+            print('TRAIN MODE')
+        else:
+            self.load_checkpoint(self.opt.load_checkpoint, only_model=True)
+        self.model.eval()
 
         # Calculate IoU and Mean accuracy for semantic segmentation
         num_classes = self.seg_class_num
         val_confusion_mtx = np.zeros((num_classes, 3))
-        iou = 0
-        mean_acc = 0
+        global_acc, iou, mean_acc = 0.0, 0.0, 0.0
+        total_labelled_pix = 0
 
-        for batch in val_loader:
+        for i, batch in enumerate(val_loader):
             val_rgb_inputs = Variable(batch[0].cuda(self.gpu_device))
             val_d_inputs = Variable(batch[1].cuda(self.gpu_device))
             val_labels = Variable(batch[2].cuda(self.gpu_device))
 
+            print('[PROGRESS] Processing imges: %i of %i    ' % (i+1, len(val_loader)), end='\r')
+
             if self.use_class:
-                val_outputs, _ = self.model(val_rgb_inputs, val_d_inputs)
+                val_seg_outputs, _ = self.model(val_rgb_inputs, val_d_inputs)
             else:
-                val_outputs = self.model(val_rgb_inputs, val_d_inputs)
+                val_seg_outputs = self.model(val_rgb_inputs, val_d_inputs)
 
-            _, val_preds = torch.max(val_outputs, 1)
-
+            _, val_preds = torch.max(val_seg_outputs, 1)
             val_labels = val_labels - 1
 
             for idx in range(num_classes):
                 val_labels_mask = val_labels == idx
+                total_labelled_pix += np.count_nonzero(val_labels_mask)
                 val_preds_mask = val_preds == idx
                 tp = np.sum((val_preds == val_labels)[val_labels_mask].data.cpu().numpy())
 
@@ -377,12 +394,19 @@ class Solver(object):
 
         for i in range(num_classes):
             tp, fp, fn = val_confusion_mtx[i]
-            print(tp + fp, fn)
+            # print(tp + fp, fn)
             iou += tp / (tp + fp + fn)
             mean_acc += tp / (tp + fp)
+            global_acc += tp
+
         iou /= num_classes
         mean_acc /= num_classes
+        global_acc /= total_labelled_pix
 
-        print("[INFO] Best VALIDATION (NYU-v2) Segmentation Accuracy: %.3f IoU: %.3f Mean Accuracy: %.3f"
-              % (self.states['best_val_seg_acc'], iou, mean_acc))
-        print("[INFO] Orgnal. FuseNet (NYU-v2) Segmentation Accuracy: 0.660 IoU: 0.327 Mean Accuracy: 0.434")
+        print("[INFO] Best VALIDATION (NYU-v2) Segmentation Global Accuracy: %.3f IoU: %.3f Mean Accuracy: %.3f"
+              % (global_acc, iou, mean_acc))
+        print("[INFO] Orgnal. FuseNet (NYU-v2) Segmentation Global Accuracy: 0.660 IoU: 0.327 Mean Accuracy: 0.434")
+
+        if vis_results:
+            vis = Visualize(self.opt, self.model, val_loader)
+            vis.visualize_predictions()

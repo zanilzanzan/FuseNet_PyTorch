@@ -8,10 +8,9 @@ class BaseOptions():
         self.initialized = False
 
     def initialize(self, parser):
-        parser.add_argument('--batch_size', type=int, default=4, help='input batch size for the training set')
         parser.add_argument('--num_workers', type=int, default=1, help='number or workers for data loaders')
         parser.add_argument('--gpu_id', type=int, default=0, help='gpu device id; this project currently supports only one-gpu training')
-        parser.add_argument('--checkpoints_dir', type=str, default='checkpoints', help='models are saved here')
+        parser.add_argument('--checkpoints_dir', type=str, default='./checkpoints', help='models are saved here')
         parser.add_argument('--name', type=str, default='experiment', help='checkpoints of the current experiment are saved here')
 
         parser.add_argument('--dataroot', required=True, help='path to dataset in h5 format; please include the type of the dataset '
