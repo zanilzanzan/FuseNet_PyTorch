@@ -1,7 +1,7 @@
 ### NYU 10-Scene Mapping ###
 
 NYU-v2: 27 Scene Types (Original)
-Class_Type	       		ID      Mapped_To   Sample_Amount
+Class_Type              ID      Mapped_To   Sample_Amount
 “basement”              1           10          7
 “bathroom"              2           4           121
 "bedroom"               3           1           383
