@@ -31,7 +31,7 @@ Class_Type              ID      Mapped_To   Sample_Amount
 "study_room"            27          10          7
 
 NYU-v2: 10 Scene Types (after Mapping)
-Class_Type              ID	    Sample_Amount
+Class_Type              ID      Sample_Amount
 “bedroom”               1           383
 “kitchen"               2           225
 “living_room"           3           221
