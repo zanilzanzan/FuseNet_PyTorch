@@ -73,10 +73,6 @@ class Solver(object):
             lam_text = ('_class_' + '%.5f' % lam).replace('.', '_')
         now = datetime.datetime.now()
 
-        # Save checkpoint with the name including epoch, - if exists, lambda value for classification - and date
-        checkpoint_filename = os.path.join(checkpoint_dir, 'model_checkpoint' + lam_text + '_{}'.format(state['epoch'] + 1)
-                                           + now.strftime('_%d%m%Y') + '.pth.tar')
-
         # If the model also the best performing model in the training session save it separately
         if is_best:
             best_model_filename = os.path.join(checkpoint_dir, 'best_model' + lam_text + '.pth.tar')
@@ -86,10 +82,14 @@ class Solver(object):
             print('\r[INFO] Best model has been successfully updated: %s' % best_model_filename)
             # shutil.copyfile(best_model_filename, checkpoint_filename)
             # print('[INFO] Checkpoint has been saved: %s' % checkpoint_filename)
-            # return
+            return
+
+        # Save checkpoint with the name including epoch, - if exists, lambda value for classification - and date
+        checkpoint_filename = os.path.join(checkpoint_dir, 'model_checkpoint' + lam_text + '_{}'.format(state['epoch'] + 1)
+                                           + now.strftime('_%d%m%Y') + '.pth.tar')
 
         torch.save(state, checkpoint_filename)
-        print('[INFO] Checkpoint has been saved: %s' % checkpoint_filename)
+        print('\r[INFO] Checkpoint has been saved: %s' % checkpoint_filename)
 
     def load_checkpoint(self, checkpoint_path, optim=None, only_model=False):
         """ Write docstring
