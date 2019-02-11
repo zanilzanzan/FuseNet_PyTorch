@@ -46,7 +46,9 @@ This section will be updated soon.
     - [model_best_class_24](https://vision.in.tum.de/webarchive/hazirbas/fusenet-pytorch/nyu/model_best_class_24.pth.tar)
 
 ## Result Visualization
-<p><img src="images/sample_visuals/7.png" width="100px" style="margin:0px 45px"/></p>
+<p align="center"><img src="images/sample_visuals/7.png" width="600px" style="margin:0px 45px"/></p>
+<p align="center"><img src="images/sample_visuals/8.png" width="600px" style="margin:0px 45px"/></p>
+<p align="center"><img src="images/sample_visuals/6.png" width="600px" style="margin:0px 45px"/></p>
 
 ## Citing FuseNet
 Caner Hazirbas, Lingni Ma, Csaba Domokos and Daniel Cremers, _"FuseNet: Incorporating Depth into Semantic Segmentation via Fusion-based CNN Architecture"_, in proceedings of the 13th Asian Conference on Computer Vision, 2016.
