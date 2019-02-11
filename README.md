@@ -2,9 +2,8 @@
 
 This repository contains PyTorch implementation of FuseNet architecture from the paper
 [FuseNet: incorporating depth into semantic segmentation via fusion-based CNN architecture](https://pdfs.semanticscholar.org/9360/ce51ec055c05fd0384343792c58363383952.pdf). 
-Initial model's capability has been extended to perform joint scene classification and 
-semantic segmentation. Potential effects of scene classification, as an auxiliary task, 
-on the overall semantic segmentation quality (and vice versa) are investigated. 
+Initial model's capability has been extended to perform joint scene classification and semantic segmentation. Potential effects of scene classification, as an auxiliary task, 
+on overall semantic segmentation quality (and vice versa) are investigated with this project. 
 
 Other implementations of FuseNet:
 [[Caffe]](https://github.com/tum-vision/fusenet) 
@@ -17,11 +16,12 @@ Prerequisites:
 - python 3.6
 - Nvidia GPU + CUDA cuDNN
 
-Clone repository and install the required packages:
-`git clone https://github.com/zanilzanzan/FuseNet_PyTorch`
-`cd FuseNet_PyTorch`
-`pip install requirements.txt`
-
+Clone the repository and install the required packages:
+```bash
+git clone https://github.com/zanilzanzan/FuseNet_PyTorch
+cd FuseNet_PyTorch
+pip install requirements.txt
+```
 ## Datasets 
 
 ### [NYU-Depth V2](https://cs.nyu.edu/~silberman/datasets/nyu_depth_v2.html)
@@ -46,7 +46,7 @@ This section will be updated soon.
     - [model_best_class_24](https://vision.in.tum.de/webarchive/hazirbas/fusenet-pytorch/nyu/model_best_class_24.pth.tar)
 
 ## Result Visualization
-
+<p><img src="images/sample_visuals/7.png" width="100px" style="margin:0px 45px"/></p>
 
 ## Citing FuseNet
 Caner Hazirbas, Lingni Ma, Csaba Domokos and Daniel Cremers, _"FuseNet: Incorporating Depth into Semantic Segmentation via Fusion-based CNN Architecture"_, in proceedings of the 13th Asian Conference on Computer Vision, 2016.
