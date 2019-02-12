@@ -57,6 +57,7 @@ class Solver(object):
             self.states['train_class_acc_hist'] = []
             self.states['val_class_acc_hist'] = []
 
+        self.states['val_seg_iou_hist'] = []
         self.states['val_seg_acc_hist'] = []
         self.states['best_val_seg_acc'] = 0.0
 
@@ -69,7 +70,7 @@ class Solver(object):
             os.makedirs(checkpoint_dir)
 
         lam_text = ''
-        if lam:
+        if self.use_class:
             lam_text = ('_class_' + '%.5f' % lam).replace('.', '_')
         now = datetime.datetime.now()
 
@@ -287,12 +288,12 @@ class Solver(object):
                         seg_loss_log_nth = np.mean(running_seg_loss[-log_nth:])
                         class_loss_log_nth = np.mean(running_class_loss[-log_nth:])
                         print("\r[Epoch: %d/%d Iter: %d/%d] Total_Loss: %.3f Seg_Loss: %.3f "
-                              "Class_Loss: %.3f Best_Acc: %.3f LR: %.2e Lam: %.5f Time: %.2f seconds         "
+                              "Class_Loss: %.3f Best_Acc(IoU): %.3f LR: %.2e Lam: %.5f Time: %.2f seconds         "
                               % (epoch + 1, end_epoch, i + 1, iter_per_epoch, loss_log_nth, seg_loss_log_nth,
                                  class_loss_log_nth, self.states['best_val_seg_acc'], optim.param_groups[0]['lr'], lam,
                                  (time_stamp_3-time_stamp_2)), end='\r')
                     else:
-                        print("\r[Epoch: %d/%d Iter: %d/%d] Seg_Loss: %.3f Best_Acc: %.3f LR: %.2e Time: %.2f seconds       "
+                        print("\r[Epoch: %d/%d Iter: %d/%d] Seg_Loss: %.3f Best_Acc(IoU): %.3f LR: %.2e Time: %.2f seconds       "
                               % (epoch + 1, end_epoch, i + 1, iter_per_epoch, loss_log_nth, self.states['best_val_seg_acc'],
                                  optim.param_groups[0]['lr'], (time_stamp_3-time_stamp_2)), end='\r')
 
@@ -310,7 +311,7 @@ class Solver(object):
             self.states['train_seg_acc_hist'].append(train_seg_acc)
 
             # Run the model on the validation set and gather segmentation and classification accuracy
-            self.validate_model(val_loader)
+            self.validate_model_2(val_loader)
 
             if self.use_class:
                 train_class_acc = np.mean(train_class_scores)
@@ -324,12 +325,12 @@ class Solver(object):
                          self.states['val_class_acc_hist'][-1]))
             else:
                 print("[Epoch: %d/%d] TRAIN Seg_Acc/Seg_Loss: %.3f/%.3f VALIDATION Seg_Acc: %.3f"
-                      % (epoch + 1, end_epoch, train_seg_acc, self.states['train_seg_loss_hist'][-1],
+                      % (epoch + 1, end_epoch, train_seg_acc, self.states['train_loss_hist'][-1],
                          self.states['val_seg_acc_hist'][-1]))
 
             # Save the checkpoint and update the model
             if (epoch+1) > self.opt.save_epoch_freq:
-                current_val_seg_acc = self.states['val_seg_acc_hist'][-1]
+                current_val_seg_acc = self.states['val_seg_iou_hist'][-1]
                 best_val_seg_acc = self.states['best_val_seg_acc']
                 is_best = current_val_seg_acc > best_val_seg_acc
                 self.states['epoch'] = epoch
@@ -342,6 +343,74 @@ class Solver(object):
 
         print("[FINAL] TRAINING COMPLETED")
         self.seg_acc_calculation(val_loader)
+
+    def validate_model_2(self, val_loader, ):
+        """ Write docstring
+        :param val_loader:
+        :return:
+        """
+        print('\n[INFO] Validating the model')
+        # Evaluate model in eval mode
+        self.model.eval()
+        val_class_scores = []
+
+        # Calculate IoU and Mean accuracy for semantic segmentation
+        num_classes = self.seg_class_num
+        val_confusion_mtx = np.zeros((num_classes, 3))
+        global_acc, iou, mean_acc = 0.0, 0.0, 0.0
+        total_labelled_pix = 0
+
+        for i, batch in enumerate(val_loader):
+            val_rgb_inputs = Variable(batch[0].cuda(self.gpu_device))
+            val_d_inputs = Variable(batch[1].cuda(self.gpu_device))
+            val_labels = Variable(batch[2].cuda(self.gpu_device))
+
+            print('[PROGRESS] Processing images: %i of %i    ' % (i+1, len(val_loader)), end='\r')
+
+            if self.use_class:
+                val_class_labels = Variable(batch[3].cuda(self.gpu_device))
+                # Infer segmentation and classification results
+                val_seg_outputs, val_class_outputs = self.model(val_rgb_inputs, val_d_inputs)
+                # val_class_preds.datasets.cpu().numpy()[0]
+                _, val_preds_class = torch.max(val_class_outputs, 1)
+                val_preds_class += 1
+                val_class_scores.append(np.mean(val_preds_class.data.cpu().numpy() == val_class_labels.data.cpu().numpy()))
+            else:
+                val_seg_outputs = self.model(val_rgb_inputs, val_d_inputs)
+
+            _, val_preds = torch.max(val_seg_outputs, 1)
+            val_labels = val_labels - 1
+
+            for idx in range(num_classes):
+                val_labels_mask = val_labels == idx
+                total_labelled_pix += np.count_nonzero(val_labels_mask)
+                val_preds_mask = val_preds == idx
+                tp = np.sum((val_preds == val_labels)[val_labels_mask].data.cpu().numpy())
+
+                val_confusion_mtx[idx, 0] += tp
+                val_confusion_mtx[idx, 1] += np.sum((val_labels == val_labels)[val_labels_mask].data.cpu().numpy()) - tp
+                val_confusion_mtx[idx, 2] += np.sum((val_preds == val_preds)[val_preds_mask].data.cpu().numpy()) - tp
+
+        for i in range(num_classes):
+            tp, fp, fn = val_confusion_mtx[i]
+            # print(tp + fp, fn)
+            iou += tp / (tp + fp + fn)
+            mean_acc += tp / (tp + fp)
+            global_acc += tp
+
+        iou /= num_classes
+        mean_acc /= num_classes
+        global_acc /= total_labelled_pix
+
+        self.states['val_seg_acc_hist'].append(global_acc)
+        self.states['val_seg_iou_hist'].append(iou)
+
+        if self.use_class:
+            self.states['val_class_acc_hist'].append(np.mean(val_class_scores))
+
+        print("[INFO] Best VALIDATION (NYU-v2) Segmentation Global Accuracy: %.3f IoU: %.3f Mean Accuracy: %.3f"
+              % (global_acc, iou, mean_acc))
+        print("[INFO] Orgnal. FuseNet (NYU-v2) Segmentation Global Accuracy: 0.660 IoU: 0.327 Mean Accuracy: 0.434")
 
     def seg_acc_calculation(self, val_loader, vis_results=False):
         """
@@ -371,7 +440,7 @@ class Solver(object):
             val_d_inputs = Variable(batch[1].cuda(self.gpu_device))
             val_labels = Variable(batch[2].cuda(self.gpu_device))
 
-            print('[PROGRESS] Processing imges: %i of %i    ' % (i+1, len(val_loader)), end='\r')
+            print('[PROGRESS] Processing images: %i of %i    ' % (i+1, len(val_loader)), end='\r')
 
             if self.use_class:
                 val_seg_outputs, _ = self.model(val_rgb_inputs, val_d_inputs)
