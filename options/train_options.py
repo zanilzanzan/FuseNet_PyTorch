@@ -15,7 +15,7 @@ class TrainOptions(BaseOptions):
         parser.add_argument('--lr_decay_epochs', type=int, default=25, help='multiply by a gamma every lr_decay_epoch epochs')
         parser.add_argument('--weight_decay', type=float, default=0.0005, help='momentum factor for optimizer')
         parser.add_argument('--lambda_seg', type=float, default=1.0, help='lambda value for segmentation loss')
-        parser.add_argument('--lambda_class_range', type=float, default=[0.0004, 0.005, 10], nargs="+",
+        parser.add_argument('--lambda_class_range', type=float, default=[0.0, 0.0, 1], nargs="+",
                             help='range of lambda values for classification loss and steps in this range: (start_val, end_val, steps)')
         parser.add_argument('--optim', type=str, default='SGD',
                             help='optimization method to use during training; currently only SGD is available')
