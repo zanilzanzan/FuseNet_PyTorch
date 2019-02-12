@@ -9,7 +9,7 @@ Other implementations of FuseNet:
 [[Caffe]](https://github.com/tum-vision/fusenet) 
 [[PyTorch]](https://github.com/MehmetAygun/fusenet-pytorch)
 
-<p><img src="images/framework_class.jpg" width="700px" style="margin:0px 45px"/></p>
+<p align="center"><img src="images/framework_class.jpg" width="700px"/></p>
 
 ## Installation
 Prerequisites:
