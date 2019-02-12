@@ -36,8 +36,7 @@ This section will be updated soon.
 
 ## Training
 - To train FuseNet, run `fusenet_train.py` by providing the path of the dataset. 
-- If you would like to train a FuseNet model with the classification head, provide `--use_class True`   
-- Note: VGG weights are downloaded automatically at the beginning of the training process. Depth layers weights will also be initialized with their vgg16 equivalent layers. However, for 'conv1_1' the weights will be averaged to fit one channel depth input (3, 3, 3, 64) -> (3, 3, 1, 64)
+- If you would like to train a FuseNet model with the classification head, provide `--use_class True`
 - Example training commnads can be found below.
 
 ### Training from scratch
