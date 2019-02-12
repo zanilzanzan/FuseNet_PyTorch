@@ -1,6 +1,6 @@
 # FuseNet
 
-This repository contains PyTorch implementation of FuseNet SF-5 architecture from the paper
+This repository contains PyTorch implementation of FuseNet-SF5 architecture from the paper
 [FuseNet: incorporating depth into semantic segmentation via fusion-based CNN architecture](https://pdfs.semanticscholar.org/9360/ce51ec055c05fd0384343792c58363383952.pdf). 
 Initial model's capability has been extended to perform joint scene classification and semantic segmentation. Potential effects of scene classification, as an auxiliary task, 
 on overall semantic segmentation quality (and vice versa) are investigated within the scope of this project. 
@@ -81,7 +81,17 @@ python fusenet_test.py --dataroot ./datasets/nyu_class_10_db.h5 --load_checkpoin
 
 Note: To visualize the resulting images within the testing process, add `--vis_results True` option.  
 
-- Pretrained FuseNet models will be uploaded soon.
+- Current results on NYU V2 dataset:
+<table align="center">
+<tr>
+<td><b> Models on NYU V2 <td><b>Global <td><b>Mean <td> <b>IoU
+<tr>
+<td><a href="https://goo.gl/fFbbW5"><b>FuseNet-SF5 (PyTorch) </a><td> 66.2 <td> 43.0 <td> 29.5
+<tr>
+<td><b> FuseNet-SF5 (CAFFE) </a><td> 66.0 <td> 43.4 <td> 32.7
+</table>
+
+- Other pretrained FuseNet models will be uploaded soon.
 
 ## Plotting loss and accuracy history graphs
 - To plot the loss and accuracy history of a model, use `fusenet_plots.ipynb` notebook.
