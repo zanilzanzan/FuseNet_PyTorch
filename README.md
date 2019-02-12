@@ -18,7 +18,7 @@ Prerequisites:
 
 Clone the repository and install the required packages:
 ```bash
-git clone https://github.com/zanilzanzan/FuseNet_PyTorch
+git clone https://github.com/zanilzanzan/FuseNet_PyTorch.git
 cd FuseNet_PyTorch
 pip install -r requirements.txt
 ```
