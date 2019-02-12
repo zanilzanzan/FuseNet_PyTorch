@@ -27,7 +27,7 @@ pip install -r requirements.txt
 ### [NYU-Depth V2](https://cs.nyu.edu/~silberman/datasets/nyu_depth_v2.html)
 - Simply, create a directory named datasets in the main project directory and in datasets directory download the preprocessed dataset, in HDF5 format, with 40 semantic-segmentation and 10 scene classes here: [train + test set](https://vision.in.tum.de/webarchive/hazirbas/fusenet-pytorch/nyu/nyu_class_10_db.h5)
 - Preprocessed dataset contains 1449 (train: 795, test: 654) RGB-D images with 320x240 resolution, their semantic-segmentation and scene-type annotations.
-- Depth image values have been normalized so that they fall into (0, 255) range. 
+- Depth image values have been normalized so that they fall into 0-255 range. 
 - Originially, NYU-Depth V2 dataset has 27 distinct scene types associated with the images. The number has been redcued to 10 classes (9 most common categories and the rest) 
 based on the mapping [Gupta et al.](http://saurabhg.web.illinois.edu/pdfs/gupta2013perceptual.pdf) used. Scene mapping text file can be accessed [here](utils/text/nyu_scene_mapping.txt).
 
