@@ -1,6 +1,6 @@
 # FuseNet
 
-This repository contains PyTorch implementation of FuseNet architecture from the paper
+This repository contains PyTorch implementation of FuseNet SF-5 architecture from the paper
 [FuseNet: incorporating depth into semantic segmentation via fusion-based CNN architecture](https://pdfs.semanticscholar.org/9360/ce51ec055c05fd0384343792c58363383952.pdf). 
 Initial model's capability has been extended to perform joint scene classification and semantic segmentation. Potential effects of scene classification, as an auxiliary task, 
 on overall semantic segmentation quality (and vice versa) are investigated within the scope of this project. 
