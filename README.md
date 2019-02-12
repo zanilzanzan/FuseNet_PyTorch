@@ -49,7 +49,7 @@ python fusenet_train.py --dataroot ./datasets/nyu_class_10_db.h5 --batch_size 8 
 w/ classification head:
 ```bash
 python fusenet_train.py --dataroot ./datasets/nyu_class_10_db.h5 --batch_size 8 --lr 0.005 \
-                        --use_class True --name experiment_1
+                        --num_epochs 200 --use_class True --name experiment_1
 ```
 
 ### Resuming training from a checkpoint
