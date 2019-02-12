@@ -1,6 +1,5 @@
 .*
 /datasets
-/models
 /checkpoints
 /results
 /venv
