@@ -97,11 +97,11 @@ python fusenet_visualize.py --dataroot ./datasets/nyu_class_10_db.h5 \
 ```
 Sample output images on NYU v2 (RGB - Ground Truth - Prediction):
 
-<p float="left"><img src="images/sample_visuals/7.png" width="400px" style="margin:0px 45px"/>
+<p align="center" float="left"><img src="images/sample_visuals/7.png" width="400px" style="margin:0px 45px"/>
 <img src="images/sample_visuals/9.png" width="400px" style="margin:0px 45px"/></p>
-<p float="left"><img src="images/sample_visuals/8.png" width="400px" style="margin:0px 45px"/>
+<p align="center" float="left"><img src="images/sample_visuals/8.png" width="400px" style="margin:0px 45px"/>
 <img src="images/sample_visuals/10.png" width="400px" style="margin:0px 45px"/></p>
-<p float="left"><img src="images/sample_visuals/6.png" width="400px" style="margin:0px 45px"/>
+<p align="center" float="left"><img src="images/sample_visuals/6.png" width="400px" style="margin:0px 45px"/>
 <img src="images/sample_visuals/11.png" width="400px" style="margin:0px 45px"/></p>
 
 ## Citing FuseNet
