@@ -28,7 +28,7 @@ pip install -r requirements.txt
 - Simply, create a directory named datasets in the main project directory and in datasets directory download the preprocessed dataset, in HDF5 format, with 40 semantic-segmentation and 10 scene classes here: [train + test set](https://vision.in.tum.de/webarchive/hazirbas/fusenet-pytorch/nyu/nyu_class_10_db.h5)
 - Preprocessed dataset contains 1449 (train: 795, test: 654) RGB-D images with 320x240 resolution, their semantic-segmentation and scene-type annotations.
 - Depth image values have been normalized so that they fall into 0-255 range. 
-- Originially, NYU-Depth V2 dataset has 27 distinct scene types associated with the images. The number has been redcued to 10 classes (9 most common categories and the rest) 
+- Originally, NYU-Depth V2 dataset has 27 distinct scene types associated with the images. The number has been reduced to 10 classes (9 most common categories and the rest) 
 based on the mapping [Gupta et al.](http://saurabhg.web.illinois.edu/pdfs/gupta2013perceptual.pdf) used. Scene mapping text file can be accessed [here](utils/text/nyu_scene_mapping.txt).
 
 ### [SUNRGBD](http://rgbd.cs.princeton.edu/)
@@ -37,7 +37,7 @@ This section will be updated soon.
 ## Training
 - To train FuseNet, run `fusenet_train.py` by providing the path of the dataset. 
 - If you would like to train a FuseNet model with the classification head, provide `--use_class True`
-- Example training commnads can be found below.
+- Example training commands can be found below.
 
 ### Training from scratch
 w/o classification head:
