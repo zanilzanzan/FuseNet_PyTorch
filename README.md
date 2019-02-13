@@ -81,7 +81,7 @@ python fusenet_test.py --dataroot ./datasets/nyu_class_10_db.h5 --load_checkpoin
 
 Note: To visualize the resulting images within the testing process, add `--vis_results True` option.  
 
-- Current results on NYU V2 dataset:
+- Current semantic segmentation results on NYU V2 dataset:
 <table align="center">
 <tr>
 <td><b> Models on NYU V2 <td><b> Global <td><b> IoU <td> <b> Mean
