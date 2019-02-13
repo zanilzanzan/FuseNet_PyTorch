@@ -84,11 +84,11 @@ Note: To visualize the resulting images within the testing process, add `--vis_r
 - Current results on NYU V2 dataset:
 <table align="center">
 <tr>
-<td><b> Models on NYU V2 <td><b>Global <td><b>Mean <td> <b>IoU
+<td><b> Models on NYU V2 <td><b> Global <td><b> IoU <td> <b> Mean
 <tr>
-<td><a href="https://goo.gl/hcUFMy"><b>FuseNet-SF5 (PyTorch) </a><td> 66.0 <td> 44.2 <td> 33.4
+<td><a href="https://goo.gl/hcUFMy"><b> FuseNet-SF5 (PyTorch) </a><td> 66.0 <td> 33.4 <td> 44.2
 <tr>
-<td><b> FuseNet-SF5 (CAFFE) </a><td> 66.0 <td> 43.4 <td> 32.7
+<td><b> FuseNet-SF5 (CAFFE) </a><td> 66.0 <td> 32.7 <td> 43.4
 </table>
 
 - Other pretrained FuseNet models will be uploaded soon.
