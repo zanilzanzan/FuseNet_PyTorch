@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     print('[INFO] Inference starts')
     solver = Solver(opt, dset_info)
-    solver.seg_acc_calculation(test_loader, opt.vis_results)
+    solver.validate_model(test_loader, opt.vis_results, True)
 
     end_date_time = datetime.datetime.now().replace(microsecond=0)
     print_time_info(start_date_time, end_date_time)

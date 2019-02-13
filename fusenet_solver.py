@@ -7,7 +7,7 @@ import torch.optim
 from torch.autograd import Variable
 from models.fusenet_model import FuseNet
 from fusenet_visualize import Visualize
-
+from utils.utils import calculate_confusion_matrix, get_scores
 
 class Solver(object):
     default_sgd_args = {"lr": 1e-3,
@@ -124,9 +124,9 @@ class Solver(object):
 
     def update_learning_rate(self, optim, epoch):
         """
-        Sets the learning rate to the initial LR decayed by 10 every 30 epochs.
+        Sets the learning rate to the initial LR decayed by 0.9 every 25 epochs.
         """
-        lr = self.optim_args['lr'] * (0.9 ** (epoch // 40))
+        lr = self.optim_args['lr'] * (0.9 ** (epoch // 25))
         for param_group in optim.param_groups:
             param_group['lr'] = lr
 
@@ -138,45 +138,70 @@ class Solver(object):
         return_dict.update({'state_dict': self.model.state_dict(), 'optimizer': optim.state_dict()})
         return return_dict
 
-    def validate_model(self, val_loader):
-        """ Write docstring
-        :param val_loader:
-        :return:
-        """
-        print('\n[PROGRESS] Validating the model',  end="", flush=True)
+    def validate_model(self, val_loader, vis_results=False, outTrain=False):
+        print('\n[INFO] Validating the model')
+        if outTrain:
+            if self.opt.isTrain:
+                self.load_checkpoint(self.states['best_model_name'], only_model=True)
+                print('TRAIN MODE')
+            else:
+                self.load_checkpoint(self.opt.load_checkpoint, only_model=True)
+
         # Evaluate model in eval mode
         self.model.eval()
-        val_seg_scores = []
         val_class_scores = []
 
-        for batch in val_loader:
+        # Calculate IoU and Mean accuracy for semantic segmentation
+        num_classes = self.seg_class_num
+        conf_mat = np.zeros((self.seg_class_num, self.seg_class_num), dtype=np.float)
+        for i, batch in enumerate(val_loader):
             val_rgb_inputs = Variable(batch[0].cuda(self.gpu_device))
             val_d_inputs = Variable(batch[1].cuda(self.gpu_device))
             val_labels = Variable(batch[2].cuda(self.gpu_device))
+
+            print('[PROGRESS] Processing images: %i of %i    ' % (i+1, len(val_loader)), end='\r')
 
             if self.use_class:
                 val_class_labels = Variable(batch[3].cuda(self.gpu_device))
                 # Infer segmentation and classification results
                 val_seg_outputs, val_class_outputs = self.model(val_rgb_inputs, val_d_inputs)
-                # val_class_preds.datasets.cpu().numpy()[0]
                 _, val_preds_class = torch.max(val_class_outputs, 1)
                 val_preds_class += 1
                 val_class_scores.append(np.mean(val_preds_class.data.cpu().numpy() == val_class_labels.data.cpu().numpy()))
             else:
-                # Infer only segmentation results
                 val_seg_outputs = self.model(val_rgb_inputs, val_d_inputs)
 
-            _, val_preds_seg = torch.max(val_seg_outputs, 1)
-            val_labels_mask = val_labels > 0
+            _, val_preds = torch.max(val_seg_outputs, 1)
             val_labels = val_labels - 1
-            val_seg_scores.append(np.mean((val_preds_seg == val_labels)[val_labels_mask].data.cpu().numpy()))
-            del val_preds_seg, val_seg_outputs, val_labels_mask
 
-        self.states['val_seg_acc_hist'].append(np.mean(val_seg_scores))
-        if self.use_class:
-            self.states['val_class_acc_hist'].append(np.mean(val_class_scores))
-        print('\r[INFO] Validation has been completed')
-        print('VAL SEG HISTORY: ', self.states['val_seg_acc_hist'])
+            val_labels = val_labels.data.cpu().numpy()
+            val_preds = val_preds.data.cpu().numpy()
+            val_labels_gen_mask = val_labels >= 0
+
+            conf_mat += calculate_confusion_matrix(val_preds, val_labels, self.seg_class_num, val_labels_gen_mask)
+        global_acc, mean_acc, iou = get_scores(conf_mat)
+
+        if not outTrain:
+            self.states['val_seg_acc_hist'].append(global_acc)
+            self.states['val_seg_iou_hist'].append(iou)
+
+            print_text = "[INFO] VALIDATION Seg_Glob_Acc: %.3f IoU: %.3f Mean_Acc: %.3f" % (global_acc, iou, mean_acc)
+
+            if self.use_class:
+                self.states['val_class_acc_hist'].append(np.mean(val_class_scores))
+                print_text += ' Class_Acc: %.3f' % self.states['val_class_acc_hist'][-1]
+
+            print('\r[INFO] Validation has been completed       ')
+            print(print_text)
+            return
+
+        print('[INFO] Best VALIDATION (NYU-v2) Segmentation Global Accuracy: %.3f IoU: %.3f Mean Accuracy: %.3f'
+              % (global_acc, iou, mean_acc))
+        print('[INFO] Orgnal. FuseNet (NYU-v2) Segmentation Global Accuracy: 0.660 IoU: 0.327 Mean Accuracy: 0.434')
+
+        if vis_results:
+            vis = Visualize(self.opt, self.model, val_loader)
+            vis.visualize_predictions()
 
     def train_model(self, train_loader, val_loader, num_epochs=10, log_nth=0, lam=None):
         """
@@ -200,7 +225,6 @@ class Solver(object):
 
         # Based on dataset sizes determine how many iterations per epoch will be done
         iter_per_epoch = len(train_loader)
-        print('ITER PER EPOCH: ', iter_per_epoch)
 
         # Initiate optimization method and loss function
         optim = self.optim(self.model.parameters(), **self.optim_args)
@@ -311,22 +335,19 @@ class Solver(object):
             self.states['train_seg_acc_hist'].append(train_seg_acc)
 
             # Run the model on the validation set and gather segmentation and classification accuracy
-            self.validate_model_2(val_loader)
+            self.validate_model(val_loader)
 
             if self.use_class:
                 train_class_acc = np.mean(train_class_scores)
                 self.states['train_class_acc_hist'].append(train_class_acc)
 
-                print("[Epoch: %d/%d] TRAIN Seg_Acc/Class_Acc/Loss/Seg_Loss/Class_Loss: %.3f/%.3f/%.3f/%.3f/%.3f "
-                      "VALIDATION Seg_Acc/Class_Acc: %.3f %.3f"
-                      % (epoch + 1, end_epoch, train_seg_acc, train_class_acc,
-                         self.states['train_loss_hist'][-1], self.states['train_seg_loss_hist'][-1],
-                         self.states['train_class_loss_hist'][-1], self.states['val_seg_acc_hist'][-1],
-                         self.states['val_class_acc_hist'][-1]))
+                print('[INFO] TRAIN Seg_Acc: %.3f Class_Acc: %.3f Loss: %.3f Seg_Loss: %.3f Class_Loss: %.3f Epoch: %d/%d'
+                      % (train_seg_acc, train_class_acc, self.states['train_loss_hist'][-1],
+                         self.states['train_seg_loss_hist'][-1], self.states['train_class_loss_hist'][-1],
+                         epoch + 1, end_epoch))
             else:
-                print("[Epoch: %d/%d] TRAIN Seg_Acc/Seg_Loss: %.3f/%.3f VALIDATION Seg_Acc: %.3f"
-                      % (epoch + 1, end_epoch, train_seg_acc, self.states['train_loss_hist'][-1],
-                         self.states['val_seg_acc_hist'][-1]))
+                print('[INFO] TRAIN Seg_Acc: %.3f Seg_Loss: %.3f Epoch: %d/%d'
+                      % (train_seg_acc, self.states['train_loss_hist'][-1], epoch + 1, end_epoch))
 
             # Save the checkpoint and update the model
             if (epoch+1) > self.opt.save_epoch_freq:
@@ -341,140 +362,5 @@ class Solver(object):
                     # model_state = self.update_model_state(epoch, self.model)
                     self.save_checkpoint(self.update_model_state(optim), lam, is_best)
 
-        print("[FINAL] TRAINING COMPLETED")
-        self.seg_acc_calculation(val_loader)
-
-    def validate_model_2(self, val_loader, ):
-        """ Write docstring
-        :param val_loader:
-        :return:
-        """
-        print('\n[INFO] Validating the model')
-        # Evaluate model in eval mode
-        self.model.eval()
-        val_class_scores = []
-
-        # Calculate IoU and Mean accuracy for semantic segmentation
-        num_classes = self.seg_class_num
-        val_confusion_mtx = np.zeros((num_classes, 3))
-        global_acc, iou, mean_acc = 0.0, 0.0, 0.0
-        total_labelled_pix = 0
-
-        for i, batch in enumerate(val_loader):
-            val_rgb_inputs = Variable(batch[0].cuda(self.gpu_device))
-            val_d_inputs = Variable(batch[1].cuda(self.gpu_device))
-            val_labels = Variable(batch[2].cuda(self.gpu_device))
-
-            print('[PROGRESS] Processing images: %i of %i    ' % (i+1, len(val_loader)), end='\r')
-
-            if self.use_class:
-                val_class_labels = Variable(batch[3].cuda(self.gpu_device))
-                # Infer segmentation and classification results
-                val_seg_outputs, val_class_outputs = self.model(val_rgb_inputs, val_d_inputs)
-                # val_class_preds.datasets.cpu().numpy()[0]
-                _, val_preds_class = torch.max(val_class_outputs, 1)
-                val_preds_class += 1
-                val_class_scores.append(np.mean(val_preds_class.data.cpu().numpy() == val_class_labels.data.cpu().numpy()))
-            else:
-                val_seg_outputs = self.model(val_rgb_inputs, val_d_inputs)
-
-            _, val_preds = torch.max(val_seg_outputs, 1)
-            val_labels = val_labels - 1
-
-            for idx in range(num_classes):
-                val_labels_mask = val_labels == idx
-                total_labelled_pix += np.count_nonzero(val_labels_mask)
-                val_preds_mask = val_preds == idx
-                tp = np.sum((val_preds == val_labels)[val_labels_mask].data.cpu().numpy())
-
-                val_confusion_mtx[idx, 0] += tp
-                val_confusion_mtx[idx, 1] += np.sum((val_labels == val_labels)[val_labels_mask].data.cpu().numpy()) - tp
-                val_confusion_mtx[idx, 2] += np.sum((val_preds == val_preds)[val_preds_mask].data.cpu().numpy()) - tp
-
-        for i in range(num_classes):
-            tp, fp, fn = val_confusion_mtx[i]
-            # print(tp + fp, fn)
-            iou += tp / (tp + fp + fn)
-            mean_acc += tp / (tp + fp)
-            global_acc += tp
-
-        iou /= num_classes
-        mean_acc /= num_classes
-        global_acc /= total_labelled_pix
-
-        self.states['val_seg_acc_hist'].append(global_acc)
-        self.states['val_seg_iou_hist'].append(iou)
-
-        if self.use_class:
-            self.states['val_class_acc_hist'].append(np.mean(val_class_scores))
-
-        print("[INFO] Best VALIDATION (NYU-v2) Segmentation Global Accuracy: %.3f IoU: %.3f Mean Accuracy: %.3f"
-              % (global_acc, iou, mean_acc))
-        print("[INFO] Orgnal. FuseNet (NYU-v2) Segmentation Global Accuracy: 0.660 IoU: 0.327 Mean Accuracy: 0.434")
-
-    def seg_acc_calculation(self, val_loader, vis_results=False):
-        """
-        :param val_loader:
-        :param vis_results:
-        :return:
-        """
-        # print("[INFO] Best VALIDATION (NYU-v2) Segmentation Accuracy: %s"
-        #       % self.states['val_seg_acc_hist'])
-        print("[INFO] Calculating Global, IoU, and Mean accuracy. This may take up to a minute. Because the method is a little crappy."
-              " I admit that. If you think you can optimize it, please be my guest and send a merge request.")
-        if self.opt.isTrain:
-            self.load_checkpoint(self.states['best_model_name'], only_model=True)
-            print('TRAIN MODE')
-        else:
-            self.load_checkpoint(self.opt.load_checkpoint, only_model=True)
-        self.model.eval()
-
-        # Calculate IoU and Mean accuracy for semantic segmentation
-        num_classes = self.seg_class_num
-        val_confusion_mtx = np.zeros((num_classes, 3))
-        global_acc, iou, mean_acc = 0.0, 0.0, 0.0
-        total_labelled_pix = 0
-
-        for i, batch in enumerate(val_loader):
-            val_rgb_inputs = Variable(batch[0].cuda(self.gpu_device))
-            val_d_inputs = Variable(batch[1].cuda(self.gpu_device))
-            val_labels = Variable(batch[2].cuda(self.gpu_device))
-
-            print('[PROGRESS] Processing images: %i of %i    ' % (i+1, len(val_loader)), end='\r')
-
-            if self.use_class:
-                val_seg_outputs, _ = self.model(val_rgb_inputs, val_d_inputs)
-            else:
-                val_seg_outputs = self.model(val_rgb_inputs, val_d_inputs)
-
-            _, val_preds = torch.max(val_seg_outputs, 1)
-            val_labels = val_labels - 1
-
-            for idx in range(num_classes):
-                val_labels_mask = val_labels == idx
-                total_labelled_pix += np.count_nonzero(val_labels_mask)
-                val_preds_mask = val_preds == idx
-                tp = np.sum((val_preds == val_labels)[val_labels_mask].data.cpu().numpy())
-
-                val_confusion_mtx[idx, 0] += tp
-                val_confusion_mtx[idx, 1] += np.sum((val_labels == val_labels)[val_labels_mask].data.cpu().numpy()) - tp
-                val_confusion_mtx[idx, 2] += np.sum((val_preds == val_preds)[val_preds_mask].data.cpu().numpy()) - tp
-
-        for i in range(num_classes):
-            tp, fp, fn = val_confusion_mtx[i]
-            # print(tp + fp, fn)
-            iou += tp / (tp + fp + fn)
-            mean_acc += tp / (tp + fp)
-            global_acc += tp
-
-        iou /= num_classes
-        mean_acc /= num_classes
-        global_acc /= total_labelled_pix
-
-        print("[INFO] Best VALIDATION (NYU-v2) Segmentation Global Accuracy: %.3f IoU: %.3f Mean Accuracy: %.3f"
-              % (global_acc, iou, mean_acc))
-        print("[INFO] Orgnal. FuseNet (NYU-v2) Segmentation Global Accuracy: 0.660 IoU: 0.327 Mean Accuracy: 0.434")
-
-        if vis_results:
-            vis = Visualize(self.opt, self.model, val_loader)
-            vis.visualize_predictions()
+        print('[FINAL] TRAINING COMPLETED')
+        self.validate_model(val_loader, True)

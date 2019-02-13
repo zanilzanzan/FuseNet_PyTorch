@@ -212,7 +212,6 @@ class FuseNet(nn.Module):
 
         print('[INFO] FuseNet model has been created')
         self.initialize_weights()
-        print('[INFO] Model weights have been initialized using He initialization')
 
     # He Initialization for the linear layers in the classification head
     def initialize_weights(self):
