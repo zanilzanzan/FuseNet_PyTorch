@@ -106,12 +106,12 @@ python fusenet_visualize.py --dataroot ./datasets/nyu_class_10_db.h5 \
 ```
 Sample output images on NYU v2 (RGB - Ground Truth - Prediction):
 
-<p align="center" float="left"><img src="https://raw.githubusercontent.com/zanilzanzan/FuseNet_PyTorch/master/images/sample_visuals/7.png" width="400px" style="margin:0px 45px"/>
-<img src="images/sample_visuals/9.png" width="400px" style="margin:0px 45px"/></p>
-<p align="center" float="left"><img src="images/sample_visuals/8.png" width="400px" style="margin:0px 45px"/>
-<img src="images/sample_visuals/10.png" width="400px" style="margin:0px 45px"/></p>
-<p align="center" float="left"><img src="images/sample_visuals/6.png" width="400px" style="margin:0px 45px"/>
-<img src="images/sample_visuals/11.png" width="400px" style="margin:0px 45px"/></p>
+<p align="center" float="left"><img src="images/sample_visuals/7.png?raw=True" width="400px" style="margin:0px 45px"/>
+<img src="images/sample_visuals/9.png?raw=True" width="400px" style="margin:0px 45px"/></p>
+<p align="center" float="left"><img src="images/sample_visuals/8.png?raw=True" width="400px" style="margin:0px 45px"/>
+<img src="images/sample_visuals/10.png?raw=True" width="400px" style="margin:0px 45px"/></p>
+<p align="center" float="left"><img src="images/sample_visuals/6.png?raw=True" width="400px" style="margin:0px 45px"/>
+<img src="images/sample_visuals/11.png?raw=True" width="400px" style="margin:0px 45px"/></p>
 
 ## Citing FuseNet
 Caner Hazirbas, Lingni Ma, Csaba Domokos and Daniel Cremers, _"FuseNet: Incorporating Depth into Semantic Segmentation via Fusion-based CNN Architecture"_, in proceedings of the 13th Asian Conference on Computer Vision, 2016.
