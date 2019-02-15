@@ -104,7 +104,7 @@ that contains the classification head.
 python fusenet_visualize.py --dataroot ./datasets/nyu_class_10_db.h5 \
                             --load_checkpoint ./checkpoints/experiment/nyu/best_model_class_0_00010.pth.tar
 ```
-Sample output images on NYU v2 (RGB - Ground Truth - Prediction):
+- Sample output images on NYU v2 (RGB - Ground Truth - Prediction):
 
 <p align="center" float="left"><img src="images/sample_visuals/7.png?raw=True" width="400px" style="margin:0px 45px"/>
 <img src="images/sample_visuals/9.png?raw=True" width="400px" style="margin:0px 45px"/></p>
