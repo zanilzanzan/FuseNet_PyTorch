@@ -4,5 +4,5 @@ matplotlib==3.0.2
 numpy==1.15.0
 numpydoc==0.8.0
 Pillow==8.2.0
-torch==0.4.0
+torch==1.13.1
 torchvision==0.2.1
